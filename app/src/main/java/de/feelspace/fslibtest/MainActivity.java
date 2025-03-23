@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.provider.DocumentsContract;
 import android.util.Log;
 import android.widget.Button;
@@ -17,6 +18,7 @@ import java.util.Locale;
 
 import de.feelspace.fslib.BeltCommandInterface;
 import de.feelspace.fslib.BeltConnectionState;
+import de.feelspace.fslib.BeltMode;
 import de.feelspace.fslib.BeltOrientation;
 import de.feelspace.fslib.NavigationController;
 import de.feelspace.fslib.NavigationEventListener;
@@ -82,6 +84,10 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
         beltHeadingTextView = findViewById(R.id.activity_main_belt_heading_text_view);
         boxOrientationTextView = findViewById(R.id.activity_main_box_orientation_text_view);
         sensorStatusTextView = findViewById(R.id.activity_main_sensor_status_text_view);
+
+        //test Vibration
+        Button btnVibrate = findViewById(R.id.btnVibrate);
+        btnVibrate.setOnClickListener(v -> sendPulseAtPositions());
 
         // Update UI
         updateUI();
@@ -293,5 +299,112 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
     public void onUnsupportedFeature() {
         showToast("Unsupported BLE feature!");
     }
+
+   /*
+    private void sendPulseAtPositions() {
+        NavigationController navController = appController.getNavigationController();
+        if (navController != null) {
+            BeltCommandInterface beltCommand = navController.getBeltConnection().getCommandInterface();
+            beltCommand.changeMode(BeltMode.APP);
+
+            // Beispiel: Pulsierende Vibration an vorderer und hinterer Position
+            int[] positions = {0, 1, 2};
+            beltCommand.vibrateAtPositions(positions, 100, null, 0, true);
+        }
+    }
+
+    private void sendPulseAtPositions() {
+        Log.i("TAG", "Test");
+        NavigationController navController = appController.getNavigationController();
+        BeltCommandInterface beltCommand = appController.getNavigationController()
+                .getBeltConnection().getCommandInterface();
+
+        BeltConnectionState connectionState = navController.getConnectionState();
+        if (connectionState != BeltConnectionState.STATE_CONNECTED) {
+            Log.e("FeelSpace-Debug", "Fehler: Gürtel nicht verbunden. Verbindungstatus: " + connectionState);
+            return;
+        }
+        // App-Modus aktivieren
+        beltCommand.changeMode(BeltMode.APP);
+        BeltMode currentMode = beltCommand.getMode();
+        if (currentMode != BeltMode.APP) {
+            Log.e("FeelSpace-Debug", "Fehler: Moduswechsel fehlgeschlagen. Aktueller Modus: " + currentMode);
+            return;
+        }
+
+        if (navController != null) {
+            //BeltCommandInterface beltCommand = navController.getBeltConnection().getCommandInterface();
+            if (beltCommand != null) {
+                // App-Modus aktivieren
+                beltCommand.changeMode(BeltMode.APP);
+
+                // Kurze Verzögerung, um sicherzustellen, dass der Modus aktiv ist
+                try {
+                    Thread.sleep(500); // 500ms warten
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+                // Beispiel: Pulsierende Vibration an vorderer und hinterer Position
+                int[] positions = {4}; // Positionsbeispiel: vorne, rechts, hinten
+                beltCommand.pulseAtPositions(positions, 50, 1000, 0, 100, 0, true);
+            }
+        }
+    }*/
+
+    private void sendPulseAtPositions() {
+        Log.i("TAG", "Test");
+        NavigationController navController = appController.getNavigationController();
+        BeltCommandInterface beltCommand = appController.getNavigationController()
+                .getBeltConnection().getCommandInterface();
+
+        BeltConnectionState connectionState = navController.getConnectionState();
+        if (connectionState != BeltConnectionState.STATE_CONNECTED) {
+            Log.e("FeelSpace-Debug", "Fehler: Gürtel nicht verbunden. Verbindungstatus: " + connectionState);
+            return;
+        }
+
+        // App-Modus aktivieren
+        beltCommand.changeMode(BeltMode.APP);
+
+        // Warten, bis der Modus erfolgreich geändert wurde
+        try {
+            Thread.sleep(1000); // 1000ms warten
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        // Modus überprüfen
+        BeltMode currentMode = beltCommand.getMode();
+        if (currentMode != BeltMode.APP) {
+            Log.e("FeelSpace-Debug", "Fehler: Moduswechsel fehlgeschlagen. Aktueller Modus: " + currentMode);
+            return;
+        }
+
+        if (navController != null) {
+            if (beltCommand != null) {
+                // Beispiel: Pulsierende Vibration an vorderer und hinterer Position
+                int[] positions = {0, 1, 2, 3, 4, 5, 6}; // Positionsbeispiel: vorne, rechts, hinten
+                beltCommand.pulseAtPositions(positions, 50, 1000, 0, 100, 0, true);
+            }
+        }
+
+    }
+
+
+
+    private void vibrateLeftToRight() {
+        NavigationController navController = appController.getNavigationController();
+        if (navController != null) {
+            BeltCommandInterface beltCommand = navController.getBeltConnection().getCommandInterface();
+
+            // Beispiel: Pulsierende Vibration an linker und rechter Position
+            beltCommand.pulseAtPositions(new int[]{0,1}, 30, 30, 3, 20, 0, true);
+        }
+    }
+
+
+
+
 
 }
