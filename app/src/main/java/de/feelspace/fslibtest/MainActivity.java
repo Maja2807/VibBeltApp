@@ -3,7 +3,9 @@ package de.feelspace.fslibtest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.provider.DocumentsContract;
@@ -12,21 +14,38 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.core.app.ActivityCompat;
+
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 
+import de.feelspace.fslib.BeltBatteryStatus;
+import de.feelspace.fslib.BeltButtonPressEvent;
 import de.feelspace.fslib.BeltCommandInterface;
+import de.feelspace.fslib.BeltCommandListener;
+import de.feelspace.fslib.BeltCommunicationController;
+import de.feelspace.fslib.BeltCommunicationListener;
 import de.feelspace.fslib.BeltConnectionState;
 import de.feelspace.fslib.BeltMode;
 import de.feelspace.fslib.BeltOrientation;
+import de.feelspace.fslib.BeltParameter;
+import de.feelspace.fslib.BeltVibrationSignal;
 import de.feelspace.fslib.NavigationController;
 import de.feelspace.fslib.NavigationEventListener;
 import de.feelspace.fslib.NavigationState;
 import de.feelspace.fslib.PowerStatus;
+import android.Manifest;
+import android.os.Handler;
+import android.view.View;
+import android.widget.Button;
+import java.util.ArrayList;
+import java.util.Random;
+
 
 public class MainActivity extends BluetoothCheckActivity implements BluetoothCheckCallback,
-        NavigationEventListener {
+        NavigationEventListener, BeltCommandListener, BeltCommunicationListener {
     // Debug
     @SuppressWarnings("unused")
     private static final String DEBUG_TAG = "FeelSpace-Debug";
@@ -44,9 +63,12 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
     private TextView boxOrientationTextView;
     private TextView sensorStatusTextView;
 
+    private TextView modeView;
+
     // UI update parameters
     private long lastOrientationUpdateTimeMillis;
     private static final long MIN_PERIOD_ORIENTATION_UPDATE_MILLIS = 250;
+    private static final int REQUEST_BLUETOOTH_PERMISSIONS = 1;
 
     // MARK: Activity methods overriding
 
@@ -88,6 +110,17 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
         //test Vibration
         Button btnVibrate = findViewById(R.id.btnVibrate);
         btnVibrate.setOnClickListener(v -> sendPulseAtPositions());
+        modeView = findViewById(R.id.modeView);
+
+        //Reaktionszeitmodus
+        Button reactionTestButton = findViewById(R.id.button_start_reaction_mode);
+        reactionTestButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(MainActivity.this, ReactionTimeActivity.class);
+                startActivity(intent);
+            }
+        });
 
         // Update UI
         updateUI();
@@ -105,6 +138,7 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
         updateConnectionButtons();
         updateOrientationTextView();
         updateSensorStatusTextView();
+        updateModusView();
     }
 
     private void updateConnectionLabel() {
@@ -218,6 +252,22 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
         });
     }
 
+    @SuppressLint("SetTextI18n")
+    private void updateModusView() {
+        runOnUiThread(() -> {
+            BeltCommandInterface beltCommand = appController.getNavigationController()
+                    .getBeltConnection().getCommandInterface();
+            BeltMode mode = beltCommand.getMode();
+            if (mode == null) {
+                modeView.setText("Mode: ");
+            } else {
+                modeView.setText(
+                        String.format(Locale.ENGLISH, "Mode: %s",
+                                mode));
+            }
+        });
+    }
+
     // MARK: Implementation of NavigationEventListener
 
     @Override
@@ -231,7 +281,32 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
     }
 
     @Override
+    public void onBeltModeChanged(BeltMode mode) {
+        updateModusView();
+    }
+
+    @Override
+    public void onBeltButtonPressed(BeltButtonPressEvent beltButtonPressEvent) {
+
+    }
+
+    @Override
     public void onBeltDefaultVibrationIntensityChanged(int intensity) {
+
+    }
+
+    @Override
+    public void onBeltBatteryStatusUpdated(BeltBatteryStatus status) {
+
+    }
+
+    @Override
+    public void onBeltOrientationUpdated(BeltOrientation orientation) {
+
+    }
+
+    @Override
+    public void onBeltCompassAccuracySignalStateNotified(boolean signalEnabled) {
 
     }
 
@@ -257,6 +332,7 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
 
     @Override
     public void onBeltConnectionStateChanged(BeltConnectionState state) {
+        Log.e("TAG", String.valueOf(state));
         updateUI();
     }
 
@@ -300,18 +376,7 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
         showToast("Unsupported BLE feature!");
     }
 
-   /*
-    private void sendPulseAtPositions() {
-        NavigationController navController = appController.getNavigationController();
-        if (navController != null) {
-            BeltCommandInterface beltCommand = navController.getBeltConnection().getCommandInterface();
-            beltCommand.changeMode(BeltMode.APP);
 
-            // Beispiel: Pulsierende Vibration an vorderer und hinterer Position
-            int[] positions = {0, 1, 2};
-            beltCommand.vibrateAtPositions(positions, 100, null, 0, true);
-        }
-    }
 
     private void sendPulseAtPositions() {
         Log.i("TAG", "Test");
@@ -319,92 +384,20 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
         BeltCommandInterface beltCommand = appController.getNavigationController()
                 .getBeltConnection().getCommandInterface();
 
-        BeltConnectionState connectionState = navController.getConnectionState();
-        if (connectionState != BeltConnectionState.STATE_CONNECTED) {
-            Log.e("FeelSpace-Debug", "Fehler: Gürtel nicht verbunden. Verbindungstatus: " + connectionState);
-            return;
-        }
+        navController.startNavigation(0, false, BeltVibrationSignal.NAVIGATION);
+        //beltCommand.changeMode(BeltMode.APP);
         // App-Modus aktivieren
-        beltCommand.changeMode(BeltMode.APP);
-        BeltMode currentMode = beltCommand.getMode();
-        if (currentMode != BeltMode.APP) {
-            Log.e("FeelSpace-Debug", "Fehler: Moduswechsel fehlgeschlagen. Aktueller Modus: " + currentMode);
-            return;
-        }
+        boolean test = beltCommand.changeMode(BeltMode.APP);
+        //navController.stopNavigation();
+        Log.e("TAG", String.valueOf(test));
 
-        if (navController != null) {
-            //BeltCommandInterface beltCommand = navController.getBeltConnection().getCommandInterface();
-            if (beltCommand != null) {
-                // App-Modus aktivieren
-                beltCommand.changeMode(BeltMode.APP);
-
-                // Kurze Verzögerung, um sicherzustellen, dass der Modus aktiv ist
-                try {
-                    Thread.sleep(500); // 500ms warten
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-
-                // Beispiel: Pulsierende Vibration an vorderer und hinterer Position
-                int[] positions = {4}; // Positionsbeispiel: vorne, rechts, hinten
-                beltCommand.pulseAtPositions(positions, 50, 1000, 0, 100, 0, true);
-            }
-        }
-    }*/
-
-    private void sendPulseAtPositions() {
-        Log.i("TAG", "Test");
-        NavigationController navController = appController.getNavigationController();
-        BeltCommandInterface beltCommand = appController.getNavigationController()
-                .getBeltConnection().getCommandInterface();
-
-        BeltConnectionState connectionState = navController.getConnectionState();
-        if (connectionState != BeltConnectionState.STATE_CONNECTED) {
-            Log.e("FeelSpace-Debug", "Fehler: Gürtel nicht verbunden. Verbindungstatus: " + connectionState);
-            return;
-        }
-
-        // App-Modus aktivieren
-        beltCommand.changeMode(BeltMode.APP);
-
-        // Warten, bis der Modus erfolgreich geändert wurde
-        try {
-            Thread.sleep(1000); // 1000ms warten
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        // Modus überprüfen
-        BeltMode currentMode = beltCommand.getMode();
-        if (currentMode != BeltMode.APP) {
-            Log.e("FeelSpace-Debug", "Fehler: Moduswechsel fehlgeschlagen. Aktueller Modus: " + currentMode);
-            return;
-        }
-
-        if (navController != null) {
-            if (beltCommand != null) {
-                // Beispiel: Pulsierende Vibration an vorderer und hinterer Position
-                int[] positions = {0, 1, 2, 3, 4, 5, 6}; // Positionsbeispiel: vorne, rechts, hinten
-                beltCommand.pulseAtPositions(positions, 50, 1000, 0, 100, 0, true);
-            }
-        }
-
+        int[] positions = {0, 6};
+        beltCommand.vibrateAtPositions(positions, 100, BeltVibrationSignal.NAVIGATION, 3, false);
     }
 
+    @Override
+    public void onBeltParameterValueNotified(BeltParameter beltParameter, Object parameterValue) {
 
-
-    private void vibrateLeftToRight() {
-        NavigationController navController = appController.getNavigationController();
-        if (navController != null) {
-            BeltCommandInterface beltCommand = navController.getBeltConnection().getCommandInterface();
-
-            // Beispiel: Pulsierende Vibration an linker und rechter Position
-            beltCommand.pulseAtPositions(new int[]{0,1}, 30, 30, 3, 20, 0, true);
-        }
     }
-
-
-
-
 
 }
