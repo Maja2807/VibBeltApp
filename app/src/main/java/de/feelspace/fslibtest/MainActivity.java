@@ -400,4 +400,10 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
 
     }
 
+    public void startInterpretationMode(View view) {
+        Intent intent = new Intent(this, InterpretationModeActivity.class);
+        startActivity(intent);
+    }
+
+
 }

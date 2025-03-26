@@ -99,6 +99,13 @@
                 android:layout_height="wrap_content"
                 android:text="Reaktionsmodus starten" />
 
+            <Button
+                android:id="@+id/button_interpretation_mode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Interpretationsmodus starten"
+                android:onClick="startInterpretationMode"/>
+
 
 
         </LinearLayout>

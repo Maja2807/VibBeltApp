@@ -33,6 +33,7 @@
             </intent-filter>
         </activity>
         <activity android:name=".ReactionTimeActivity"/>
+        <activity android:name=".InterpretationModeActivity"/>
     </application>
 
 </manifest>
