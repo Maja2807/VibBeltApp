@@ -66,7 +66,7 @@ public class ReactionTimeActivity extends AppCompatActivity {
         Log.d("ReactionTimeTest", "Delay bis nächste Vibration: " + delay + " ms");
 
         handler.postDelayed(() -> {
-            //int position = random.nextInt(8); // Zufällige Gürtel-Position (0-7)
+            int position = random.nextInt(8); // Zufällige Gürtel-Position (0-7)
             //Log.d("ReactionTimeTest", "Vibration an Position: " + position);
 
             navController.startNavigation(0, false, null); // Wait Modus ausschalten
@@ -74,8 +74,9 @@ public class ReactionTimeActivity extends AppCompatActivity {
             // Gürtel in App-Modus setzen
             beltCommand.changeMode(BeltMode.APP);
             // Kurze Vibration auslösen
-            //beltCommand.vibrateAtPositions(new int[]{position}, 100, BeltVibrationSignal.NEXT_WAYPOINT_SHORT_DISTANCE, 1, false);
-            beltCommand.signal(BeltVibrationSignal.OPERATION_WARNING, 25, 0, false);
+            //beltCommand.vibrateAtPositions(new int[]{position}, 100, BeltVibrationSignal.APPROACHING_DESTINATION, 1, true);
+            //beltCommand.signal(BeltVibrationSignal.OPERATION_WARNING, 25, 1, false);
+            beltCommand.pulseAtPositions(new int[]{position}, 1000, 1, 50, 1, 1, true);
 
             vibrationStartTime = SystemClock.elapsedRealtime();
             waitingForReaction = true;

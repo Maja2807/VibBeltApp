@@ -122,7 +122,7 @@ public class InterpretationModeActivity extends AppCompatActivity {
         //beltCommand.vibrateAtPositions(new int[]{vibrationPosition}, 70, BeltVibrationSignal.NEXT_WAYPOINT_AREA_REACHED, 1, false);
         beltCommand.pulseAtPositions(new int[]{vibrationPosition}, 1000, 1000, 1, 50, 1, true);
 
-        if (heartRate > 140 || heartRate < 50) {
+        if (heartRate > 100 || heartRate < 60) {
             lastCriticalTime = lastSentTime;
             Log.d("InterpretationTest", "⚠ Kritischer Wert gesendet: " + heartRate + " BPM");
             writeToLogFile("Kritischer Wert gesendet: " + heartRate + " BPM um " + lastCriticalTime + " ms\n");
