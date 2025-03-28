@@ -30,6 +30,7 @@ public class ReactionTimeActivity extends AppCompatActivity {
     private Button startTestButton, backButton;
 
     private AppController appController;
+
     private BeltCommandInterface beltController;
     private BeltConnectionInterface beltConnection;
 
@@ -54,10 +55,21 @@ public class ReactionTimeActivity extends AppCompatActivity {
         remainingVibrations = 30;
         backButton.setVisibility(View.GONE); // Zurück-Button ausblenden
         startTestButton.setEnabled(false);
+
+        if (beltCommand == null) {
+            Log.e("BeltError", "BeltCommandInterface ist null! Verbindung fehlt?");
+        } else {
+            Log.d("BeltSuccess", "BeltCommandInterface vorhanden. Wechsle in APP-Modus.");
+            beltCommand.changeMode(BeltMode.APP);
+        }
+
+        BeltConnectionState connectionState = connectionController.getState();
+        Log.d("BeltDebug", "Verbindungsstatus: " + connectionState);
         scheduleNextVibration();
     }
 
     private void scheduleNextVibration() {
+
         if (remainingVibrations <= 0) {
             finishTest();
             return;
@@ -67,16 +79,12 @@ public class ReactionTimeActivity extends AppCompatActivity {
         Log.d("ReactionTimeTest", "Delay bis nächste Vibration: " + delay + " ms");
 
         handler.postDelayed(() -> {
-            int position = random.nextInt(8); // Zufällige Gürtel-Position (0-7)
+            //int position = random.nextInt(8); // Zufällige Gürtel-Position (0-7)
             //Log.d("ReactionTimeTest", "Vibration an Position: " + position);
 
             beltController.changeMode(BeltMode.APP);
             beltController.pulseAtPositions(new int[]{position}, 1000, 1, 50, 1, 1, true);
 
-            // Kurze Vibration auslösen
-            //beltController.vibrateAtPositions(new int[]{position}, 100, BeltVibrationSignal.APPROACHING_DESTINATION, 1, true);
-            //beltController.signal(BeltVibrationSignal.OPERATION_WARNING, 25, 1, false);
-            //beltController.pulseAtPositions(new int[]{position}, 1000, 1, 50, 1, 1, true);
 
             vibrationStartTime = SystemClock.elapsedRealtime();
             waitingForReaction = true;

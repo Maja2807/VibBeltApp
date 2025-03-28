@@ -29,6 +29,7 @@ import de.feelspace.fslib.BeltCommandListener;
 import de.feelspace.fslib.BeltCommunicationController;
 import de.feelspace.fslib.BeltCommunicationListener;
 import de.feelspace.fslib.BeltConnectionInterface;
+import de.feelspace.fslib.BeltConnectionController;
 import de.feelspace.fslib.BeltConnectionListener;
 import de.feelspace.fslib.BeltConnectionState;
 import de.feelspace.fslib.BeltMode;
@@ -38,7 +39,10 @@ import de.feelspace.fslib.BeltVibrationSignal;
 import de.feelspace.fslib.NavigationController;
 import de.feelspace.fslib.NavigationEventListener;
 import de.feelspace.fslib.NavigationState;
+import de.feelspace.fslib.OrientationType;
 import de.feelspace.fslib.PowerStatus;
+import de.feelspace.fslib.ResetProgressOption;
+
 import android.Manifest;
 import android.os.Handler;
 import android.view.View;
@@ -48,7 +52,9 @@ import java.util.Random;
 
 
 public class MainActivity extends BluetoothCheckActivity implements BluetoothCheckCallback,
+
         BeltConnectionListener, BeltCommandListener, BeltCommunicationListener {
+
     // Debug
     @SuppressWarnings("unused")
     private static final String DEBUG_TAG = "FeelSpace-Debug";
@@ -72,6 +78,8 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
     private long lastOrientationUpdateTimeMillis;
     private static final long MIN_PERIOD_ORIENTATION_UPDATE_MILLIS = 250;
     private static final int REQUEST_BLUETOOTH_PERMISSIONS = 1;
+
+    private Handler handler = new Handler();
 
     // MARK: Activity methods overriding
 
@@ -111,10 +119,15 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
         boxOrientationTextView = findViewById(R.id.activity_main_box_orientation_text_view);
         sensorStatusTextView = findViewById(R.id.activity_main_sensor_status_text_view);
 
-        //test Vibration
-        Button btnVibrate = findViewById(R.id.btnVibrate);
-        btnVibrate.setOnClickListener(v -> sendPulseAtPositions());
         modeView = findViewById(R.id.modeView);
+
+        //Training A - Min zu Max
+        Button btnVibrate = findViewById(R.id.btnVibrate);
+        btnVibrate.setOnClickListener(v -> vibrateLeftToRight());
+
+        //Training B - Max zu Min
+        Button btnVibrateB = findViewById(R.id.btnVibrateB);
+        btnVibrateB.setOnClickListener(v -> vibrateRightToLeft());
 
         //Reaktionszeitmodus
         Button reactionTestButton = findViewById(R.id.button_start_reaction_mode);
@@ -178,6 +191,38 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
                     connectionStateTextView.setText(R.string.connected);
                     break;
             }
+            /*
+            NavigationController navController = appController.getNavigationController();
+            if (navController != null) {
+                state = navController.getConnectionState();
+
+            }
+            switch (state) {
+                case STATE_DISCONNECTED:
+                    connectionStateTextView.setText(R.string.disconnected);
+                    break;
+                case STATE_SCANNING:
+                    connectionStateTextView.setText(R.string.scanning);
+                    break;
+                case STATE_PAIRING:
+                    connectionStateTextView.setText(R.string.pairing);
+                    break;
+                case STATE_CONNECTING:
+                    connectionStateTextView.setText(R.string.connecting);
+                    break;
+                case STATE_RECONNECTING:
+                    connectionStateTextView.setText(R.string.reconnecting);
+                    break;
+                case STATE_DISCOVERING_SERVICES:
+                    connectionStateTextView.setText(R.string.discovering_services);
+                    break;
+                case STATE_HANDSHAKE:
+                    connectionStateTextView.setText(R.string.handshake);
+                    break;
+                case STATE_CONNECTED:
+                    connectionStateTextView.setText(R.string.connected);
+                    break;
+            } */
         });
     }
 
@@ -259,6 +304,7 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
         runOnUiThread(() -> {
             BeltCommandInterface beltController = appController.getBeltController();
             BeltMode mode = beltController.getMode();
+
             if (mode == null) {
                 modeView.setText("Mode: ");
             } else {
@@ -340,6 +386,32 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
     @Override
     public void onPairingFailed() {
         showToast("Belt connection fails!");
+
+    }
+
+    @Override
+    public void onBeltFound(BluetoothDevice belt) {
+
+    }
+
+    @Override
+    public void onConnectionStateChange(BeltConnectionState state) {
+        updateUI();
+    }
+
+    @Override
+    public void onConnectionLost() {
+
+    }
+
+    @Override
+    public void onConnectionFailed() {
+
+    }
+
+    @Override
+    public void onPairingFailed() {
+
     }
 
     // MARK: Implementation of `BluetoothCheckCallback`
@@ -367,15 +439,66 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
         showToast("Unsupported BLE feature!");
     }
 
+    private void vibrateLeftToRight() {
+        // Definiere die Anzahl der Positionen (z. B. 8 Positionen von 0 bis 7)
+        int[] positions = new int[]{0, 1, 2, 3, 4, 5, 6, 7};
 
+        // Dauer der Vibration für jede Position (in Millisekunden)
+        int vibrationDuration = 500; // 200 ms pro Position, nach Bedarf anpassen
 
-    private void sendPulseAtPositions() {
-        Log.i("TAG", "Test");
         BeltCommandInterface beltController = appController.getBeltController();
-
         beltController.changeMode(BeltMode.APP);
-        int[] positions = {0, 6};
-        beltController.vibrateAtPositions(positions, 100, BeltVibrationSignal.NAVIGATION, 3, false);
+
+        // Erstelle ein Runnable, das die Vibrationen nacheinander auslöst
+        handler.post(new Runnable() {
+            int index = 0;
+
+            @Override
+            public void run() {
+                if (index < positions.length) {
+                    // Vibrieren an der aktuellen Position
+                    beltController.pulseAtPositions(new int[]{positions[index]}, vibrationDuration, 500, 1, 50, 1, false);
+                    Log.d("BeltDebug", "Vibration an Position " + positions[index]);
+
+                    // Gehe zur nächsten Position
+                    index++;
+
+                    // Wiederhole den Vorgang mit einer kurzen Verzögerung (hier 300 ms)
+                    handler.postDelayed(this, 300); // Pause zwischen den Vibrationen
+                }
+            }
+        });
+    }
+
+    private void vibrateRightToLeft() {
+        // Definiere die Anzahl der Positionen (z. B. 8 Positionen von 0 bis 7)
+        int[] positions = new int[]{7, 6, 5, 4, 3, 2, 1, 0};
+
+        // Dauer der Vibration für jede Position (in Millisekunden)
+        int vibrationDuration = 500; // 200 ms pro Position, nach Bedarf anpassen
+
+        BeltCommandInterface beltController = appController.getBeltController();
+        beltController.changeMode(BeltMode.APP);
+
+        // Erstelle ein Runnable, das die Vibrationen nacheinander auslöst
+        handler.post(new Runnable() {
+            int index = 0;
+
+            @Override
+            public void run() {
+                if (index < positions.length) {
+                    // Vibrieren an der aktuellen Position
+                    beltController.pulseAtPositions(new int[]{positions[index]}, vibrationDuration, 500, 1, 50, 1, false);
+                    Log.d("BeltDebug", "Vibration an Position " + positions[index]);
+
+                    // Gehe zur nächsten Position
+                    index++;
+
+                    // Wiederhole den Vorgang mit einer kurzen Verzögerung (hier 300 ms)
+                    handler.postDelayed(this, 300); // Pause zwischen den Vibrationen
+                }
+            }
+        });
     }
 
     @Override

@@ -79,19 +79,26 @@
                 android:layout_width="match_parent"
                 android:layout_height="10dp" />
 
-            <Button
-                android:id="@+id/btnVibrate"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Vibration starten"
-                android:layout_centerInParent="true" />
-
             <TextView
                 android:id="@+id/modeView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text=""
                 android:textAppearance="@style/TextAppearance.AppCompat.Medium" />
+
+            <Button
+                android:id="@+id/btnVibrate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Training-A"
+                android:layout_centerInParent="true" />
+
+            <Button
+                android:id="@+id/btnVibrateB"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Training-B"
+                android:layout_centerInParent="true" />
 
             <Button
                 android:id="@+id/button_start_reaction_mode"

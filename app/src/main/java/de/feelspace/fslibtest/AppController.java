@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import de.feelspace.fslib.BeltCommandInterface;
 import de.feelspace.fslib.BeltCommunicationController;
 import de.feelspace.fslib.BeltCommunicationInterface;
-//import de.feelspace.fslib.BeltConnectionController;
+import de.feelspace.fslib.BeltConnectionController;
 import de.feelspace.fslib.BeltConnectionInterface;
 import de.feelspace.fslib.NavigationController;
 
@@ -64,6 +64,7 @@ public class AppController {
         if (this.applicationContext == null) {
             // Keep application context
             this.applicationContext = applicationContext;
+
             // Initialize the belt controller
             this.beltConnection = BeltConnectionInterface.create(applicationContext);
             this.beltController = this.beltConnection.getCommandInterface();
