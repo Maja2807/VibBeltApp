@@ -2,6 +2,7 @@ package de.feelspace.fslibtest;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
@@ -27,6 +28,8 @@ import de.feelspace.fslib.BeltCommandInterface;
 import de.feelspace.fslib.BeltCommandListener;
 import de.feelspace.fslib.BeltCommunicationController;
 import de.feelspace.fslib.BeltCommunicationListener;
+import de.feelspace.fslib.BeltConnectionController;
+import de.feelspace.fslib.BeltConnectionListener;
 import de.feelspace.fslib.BeltConnectionState;
 import de.feelspace.fslib.BeltMode;
 import de.feelspace.fslib.BeltOrientation;
@@ -35,7 +38,10 @@ import de.feelspace.fslib.BeltVibrationSignal;
 import de.feelspace.fslib.NavigationController;
 import de.feelspace.fslib.NavigationEventListener;
 import de.feelspace.fslib.NavigationState;
+import de.feelspace.fslib.OrientationType;
 import de.feelspace.fslib.PowerStatus;
+import de.feelspace.fslib.ResetProgressOption;
+
 import android.Manifest;
 import android.os.Handler;
 import android.view.View;
@@ -45,7 +51,7 @@ import java.util.Random;
 
 
 public class MainActivity extends BluetoothCheckActivity implements BluetoothCheckCallback,
-        NavigationEventListener, BeltCommandListener, BeltCommunicationListener {
+        NavigationEventListener, BeltCommandListener, BeltCommunicationListener, BeltConnectionListener {
     // Debug
     @SuppressWarnings("unused")
     private static final String DEBUG_TAG = "FeelSpace-Debug";
@@ -82,7 +88,8 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
         appController.init(getApplicationContext());
 
         // Navigation controller
-        appController.getNavigationController().addNavigationEventListener(this);
+        //appController.getNavigationController().addNavigationEventListener(this);
+        appController.getBeltConnectionController().addConnectionListener((BeltConnectionListener) this);
 
         // Connection state
         connectionStateTextView = findViewById(R.id.activity_main_connection_state_text_view);
@@ -96,10 +103,14 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
         // Disconnect button
         disconnectButton = findViewById(R.id.activity_main_disconnect_button);
         disconnectButton.setOnClickListener(view -> {
-            NavigationController navController = appController.getNavigationController();
+            BeltConnectionController connectionController = appController.getBeltConnectionController();
+            if (connectionController != null){
+                connectionController.disconnect();
+            }
+            /*NavigationController navController = appController.getNavigationController();
             if (navController != null) {
                 navController.disconnectBelt();
-            }
+            }*/
         });
 
         // Calibration
@@ -107,10 +118,11 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
         boxOrientationTextView = findViewById(R.id.activity_main_box_orientation_text_view);
         sensorStatusTextView = findViewById(R.id.activity_main_sensor_status_text_view);
 
+        modeView = findViewById(R.id.modeView);
+
         //test Vibration
         Button btnVibrate = findViewById(R.id.btnVibrate);
         btnVibrate.setOnClickListener(v -> sendPulseAtPositions());
-        modeView = findViewById(R.id.modeView);
 
         //Reaktionszeitmodus
         Button reactionTestButton = findViewById(R.id.button_start_reaction_mode);
@@ -144,6 +156,37 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
     private void updateConnectionLabel() {
         runOnUiThread(() -> {
             BeltConnectionState state = BeltConnectionState.STATE_DISCONNECTED;
+            BeltConnectionController connectionController = appController.getBeltConnectionController();
+            if (connectionController != null){
+                state = connectionController.getState();
+            }
+            switch (state) {
+                case STATE_DISCONNECTED:
+                    connectionStateTextView.setText(R.string.disconnected);
+                    break;
+                case STATE_SCANNING:
+                    connectionStateTextView.setText(R.string.scanning);
+                    break;
+                case STATE_PAIRING:
+                    connectionStateTextView.setText(R.string.pairing);
+                    break;
+                case STATE_CONNECTING:
+                    connectionStateTextView.setText(R.string.connecting);
+                    break;
+                case STATE_RECONNECTING:
+                    connectionStateTextView.setText(R.string.reconnecting);
+                    break;
+                case STATE_DISCOVERING_SERVICES:
+                    connectionStateTextView.setText(R.string.discovering_services);
+                    break;
+                case STATE_HANDSHAKE:
+                    connectionStateTextView.setText(R.string.handshake);
+                    break;
+                case STATE_CONNECTED:
+                    connectionStateTextView.setText(R.string.connected);
+                    break;
+            }
+            /*
             NavigationController navController = appController.getNavigationController();
             if (navController != null) {
                 state = navController.getConnectionState();
@@ -173,17 +216,21 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
                 case STATE_CONNECTED:
                     connectionStateTextView.setText(R.string.connected);
                     break;
-            }
+            } */
         });
     }
 
     private void updateConnectionButtons() {
         runOnUiThread(() -> {
             BeltConnectionState state = BeltConnectionState.STATE_DISCONNECTED;
-            NavigationController navController = appController.getNavigationController();
+            BeltConnectionController connectionController = appController.getBeltConnectionController();
+            if (connectionController != null){
+                state = connectionController.getState();
+            }
+            /*NavigationController navController = appController.getNavigationController();
             if (navController != null) {
                 state = navController.getConnectionState();
-            }
+            }*/
             switch (state) {
                 case STATE_DISCONNECTED:
                     connectButton.setEnabled(true);
@@ -255,8 +302,9 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
     @SuppressLint("SetTextI18n")
     private void updateModusView() {
         runOnUiThread(() -> {
-            BeltCommandInterface beltCommand = appController.getNavigationController()
-                    .getBeltConnection().getCommandInterface();
+            BeltCommandInterface beltCommand = appController.getBeltConnectionController().getCommandInterface();
+            //BeltCommandInterface beltCommand = appController.getNavigationController()
+                    //.getBeltConnection().getCommandInterface();
             BeltMode mode = beltCommand.getMode();
             if (mode == null) {
                 modeView.setText("Mode: ");
@@ -347,18 +395,53 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
     }
 
     @Override
+    public void onScanFailed() {
+
+    }
+
+    @Override
     public void onNoBeltFound() {
         showToast("No belt found!");
+    }
+
+    @Override
+    public void onBeltFound(BluetoothDevice belt) {
+
+    }
+
+    @Override
+    public void onConnectionStateChange(BeltConnectionState state) {
+        updateUI();
+    }
+
+    @Override
+    public void onConnectionLost() {
+
+    }
+
+    @Override
+    public void onConnectionFailed() {
+
+    }
+
+    @Override
+    public void onPairingFailed() {
+
     }
 
     // MARK: Implementation of `BluetoothCheckCallback`
 
     @Override
     public void onBluetoothReady() {
+        BeltConnectionController connectionController = appController.getBeltConnectionController();
+        if (connectionController != null){
+            connectionController.scanAndConnect();
+        }
+        /*
         NavigationController navController = appController.getNavigationController();
         if (navController != null) {
             navController.searchAndConnectBelt();
-        }
+        }*/
     }
 
     @Override
@@ -380,19 +463,26 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
 
     private void sendPulseAtPositions() {
         Log.i("TAG", "Test");
-        NavigationController navController = appController.getNavigationController();
-        BeltCommandInterface beltCommand = appController.getNavigationController()
-                .getBeltConnection().getCommandInterface();
+        //NavigationController navController = appController.getNavigationController();
+        //BeltCommandInterface beltCommand = appController.getNavigationController()
+                //.getBeltConnection().getCommandInterface();
 
-        navController.startNavigation(0, false, BeltVibrationSignal.NAVIGATION);
+        BeltConnectionController connectionController = appController.getBeltConnectionController();
+        BeltCommandInterface beltCommand = appController.getBeltConnectionController().getCommunicationInterface();
+
+        //navController.startNavigation(0, false, BeltVibrationSignal.NAVIGATION);
         //beltCommand.changeMode(BeltMode.APP);
         // App-Modus aktivieren
         boolean test = beltCommand.changeMode(BeltMode.APP);
         //navController.stopNavigation();
         Log.e("TAG", String.valueOf(test));
 
-        int[] positions = {0, 6};
-        beltCommand.vibrateAtPositions(positions, 100, BeltVibrationSignal.NAVIGATION, 3, false);
+        int[] positions = {0};
+        //beltCommand.vibrateAtPositions(positions, 100, BeltVibrationSignal.NAVIGATION, 3, false);
+        beltCommand.changeMode(BeltMode.APP);
+        BeltMode mode = beltCommand.getMode();
+        Log.d("TAG", String.valueOf(mode));
+        beltCommand.pulseAtPositions(positions, 1000, 1000, 1, 50, 1, false);
     }
 
     @Override

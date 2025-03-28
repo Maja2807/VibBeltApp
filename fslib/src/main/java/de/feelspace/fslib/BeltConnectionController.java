@@ -20,7 +20,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 /**
  * Implementation of the belt connection interface.
  */
-class BeltConnectionController extends BeltConnectionInterface implements
+public class BeltConnectionController extends BeltConnectionInterface implements
         GattController.GattEventListener, BluetoothScanner.BluetoothScannerDelegate,
         BeltCommunicationController.HandshakeCallback {
 

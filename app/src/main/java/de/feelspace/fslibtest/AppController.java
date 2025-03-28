@@ -9,7 +9,7 @@ import java.util.ArrayList;
 
 import de.feelspace.fslib.BeltCommunicationController;
 import de.feelspace.fslib.BeltCommunicationInterface;
-//import de.feelspace.fslib.BeltConnectionController;
+import de.feelspace.fslib.BeltConnectionController;
 import de.feelspace.fslib.BeltConnectionInterface;
 import de.feelspace.fslib.NavigationController;
 
@@ -29,7 +29,7 @@ public class AppController {
     // Belt controller
     private NavigationController navigationController;
 
-    //private BeltConnectionController beltConnectionController;
+    private BeltConnectionController beltConnectionController;
     /**
      * Private constructor for singleton.
      */
@@ -66,18 +66,18 @@ public class AppController {
             // Initialize the navigation controller
             this.navigationController = new NavigationController(applicationContext);
             // Initialize the belt connection controller
-            //this.beltConnectionController = new BeltConnectionController(applicationContext);
+            this.beltConnectionController = new BeltConnectionController(applicationContext);
         }
     }
 
-    public NavigationController getNavigationController() {
+   public NavigationController getNavigationController() {
         return navigationController;
     }
 
-    /*
+
     public BeltConnectionController getBeltConnectionController() {
         return beltConnectionController;
     }
 
-     */
+
 }

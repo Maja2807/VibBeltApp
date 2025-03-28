@@ -15,6 +15,8 @@ import java.util.List;
 import java.util.Random;
 
 import de.feelspace.fslib.BeltCommandInterface;
+import de.feelspace.fslib.BeltConnectionController;
+import de.feelspace.fslib.BeltConnectionState;
 import de.feelspace.fslib.BeltMode;
 import de.feelspace.fslib.BeltVibrationSignal;
 import de.feelspace.fslib.NavigationController;
@@ -31,6 +33,7 @@ public class ReactionTimeActivity extends AppCompatActivity {
     private AppController appController;
     private NavigationController navController;
     private BeltCommandInterface beltCommand;
+    private BeltConnectionController connectionController;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,8 +41,10 @@ public class ReactionTimeActivity extends AppCompatActivity {
         setContentView(R.layout.activity_reaction_time);
 
         appController = AppController.getInstance();
-        navController = appController.getNavigationController();
-        beltCommand = navController.getBeltConnection().getCommandInterface();
+        //navController = appController.getNavigationController();
+        connectionController = appController.getBeltConnectionController();
+        //beltCommand = navController.getBeltConnection().getCommandInterface();
+        beltCommand = connectionController.getCommandInterface();
 
         startTestButton = findViewById(R.id.startTestButton);
         backButton = findViewById(R.id.backButton);
@@ -53,10 +58,21 @@ public class ReactionTimeActivity extends AppCompatActivity {
         remainingVibrations = 30;
         backButton.setVisibility(View.GONE); // Zurück-Button ausblenden
         startTestButton.setEnabled(false);
+
+        if (beltCommand == null) {
+            Log.e("BeltError", "BeltCommandInterface ist null! Verbindung fehlt?");
+        } else {
+            Log.d("BeltSuccess", "BeltCommandInterface vorhanden. Wechsle in APP-Modus.");
+            beltCommand.changeMode(BeltMode.APP);
+        }
+
+        BeltConnectionState connectionState = connectionController.getState();
+        Log.d("BeltDebug", "Verbindungsstatus: " + connectionState);
         scheduleNextVibration();
     }
 
     private void scheduleNextVibration() {
+
         if (remainingVibrations <= 0) {
             finishTest();
             return;
@@ -66,17 +82,23 @@ public class ReactionTimeActivity extends AppCompatActivity {
         Log.d("ReactionTimeTest", "Delay bis nächste Vibration: " + delay + " ms");
 
         handler.postDelayed(() -> {
-            int position = random.nextInt(8); // Zufällige Gürtel-Position (0-7)
+            //int position = random.nextInt(8); // Zufällige Gürtel-Position (0-7)
             //Log.d("ReactionTimeTest", "Vibration an Position: " + position);
 
-            navController.startNavigation(0, false, null); // Wait Modus ausschalten
+            //navController.startNavigation(0, false, null); // Wait Modus ausschalten
 
             // Gürtel in App-Modus setzen
             beltCommand.changeMode(BeltMode.APP);
+            //BeltMode mode = beltCommand.getMode();
+            //Log.d("TAG", String.valueOf(mode));
+
             // Kurze Vibration auslösen
             //beltCommand.vibrateAtPositions(new int[]{position}, 100, BeltVibrationSignal.APPROACHING_DESTINATION, 1, true);
             //beltCommand.signal(BeltVibrationSignal.OPERATION_WARNING, 25, 1, false);
-            beltCommand.pulseAtPositions(new int[]{position}, 1000, 1, 50, 1, 1, true);
+            //Log.d("BeltDebug", "Starte Vibration an Position 5...");
+            //beltCommand.stopVibration();
+            beltCommand.pulseAtPositions(new int[]{5, 6}, 1000, 1000, 1, 50, 1, true);
+            //Log.d("BeltDebug", "Starte Vibration an Position 5...");
 
             vibrationStartTime = SystemClock.elapsedRealtime();
             waitingForReaction = true;
