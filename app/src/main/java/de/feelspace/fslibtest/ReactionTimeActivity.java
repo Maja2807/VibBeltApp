@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Random;
 
 import de.feelspace.fslib.BeltCommandInterface;
+import de.feelspace.fslib.BeltConnectionInterface;
 import de.feelspace.fslib.BeltMode;
 import de.feelspace.fslib.BeltVibrationSignal;
 import de.feelspace.fslib.NavigationController;
@@ -29,8 +30,8 @@ public class ReactionTimeActivity extends AppCompatActivity {
     private Button startTestButton, backButton;
 
     private AppController appController;
-    private NavigationController navController;
-    private BeltCommandInterface beltCommand;
+    private BeltCommandInterface beltController;
+    private BeltConnectionInterface beltConnection;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,8 +39,8 @@ public class ReactionTimeActivity extends AppCompatActivity {
         setContentView(R.layout.activity_reaction_time);
 
         appController = AppController.getInstance();
-        navController = appController.getNavigationController();
-        beltCommand = navController.getBeltConnection().getCommandInterface();
+        beltController = appController.getBeltController();
+        beltConnection = appController.getBeltConnection();
 
         startTestButton = findViewById(R.id.startTestButton);
         backButton = findViewById(R.id.backButton);
@@ -69,14 +70,13 @@ public class ReactionTimeActivity extends AppCompatActivity {
             int position = random.nextInt(8); // Zufällige Gürtel-Position (0-7)
             //Log.d("ReactionTimeTest", "Vibration an Position: " + position);
 
-            navController.startNavigation(0, false, null); // Wait Modus ausschalten
+            beltController.changeMode(BeltMode.APP);
+            beltController.pulseAtPositions(new int[]{position}, 1000, 1, 50, 1, 1, true);
 
-            // Gürtel in App-Modus setzen
-            beltCommand.changeMode(BeltMode.APP);
             // Kurze Vibration auslösen
-            //beltCommand.vibrateAtPositions(new int[]{position}, 100, BeltVibrationSignal.APPROACHING_DESTINATION, 1, true);
-            //beltCommand.signal(BeltVibrationSignal.OPERATION_WARNING, 25, 1, false);
-            beltCommand.pulseAtPositions(new int[]{position}, 1000, 1, 50, 1, 1, true);
+            //beltController.vibrateAtPositions(new int[]{position}, 100, BeltVibrationSignal.APPROACHING_DESTINATION, 1, true);
+            //beltController.signal(BeltVibrationSignal.OPERATION_WARNING, 25, 1, false);
+            //beltController.pulseAtPositions(new int[]{position}, 1000, 1, 50, 1, 1, true);
 
             vibrationStartTime = SystemClock.elapsedRealtime();
             waitingForReaction = true;

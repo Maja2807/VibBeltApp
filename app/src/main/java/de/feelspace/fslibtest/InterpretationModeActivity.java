@@ -19,6 +19,7 @@ import java.util.Arrays;
 
 import de.feelspace.fslib.BeltCommandInterface;
 //import de.feelspace.fslib.BeltConnectionController;
+import de.feelspace.fslib.BeltConnectionInterface;
 import de.feelspace.fslib.BeltMode;
 import de.feelspace.fslib.BeltVibrationSignal;
 import de.feelspace.fslib.NavigationController;
@@ -34,10 +35,8 @@ public class InterpretationModeActivity extends AppCompatActivity {
     private static final int TEST_DURATION = 180000; // 3 Minuten (in ms)
     private long testStartTime;
     private AppController appController;
-    private NavigationController navController;
-    private BeltCommandInterface beltCommand;
-
-    //private BeltConnectionController beltConnection;
+    private BeltCommandInterface beltController;
+    private BeltConnectionInterface beltConnection;
     private long lastSentTime;
     private static final int UPDATE_RATE_MS = 1000; // 1 Sekunde
     private FileWriter logFileWriter;
@@ -62,8 +61,8 @@ public class InterpretationModeActivity extends AppCompatActivity {
         setContentView(R.layout.activity_interpretation_mode);
 
         appController = AppController.getInstance();
-        navController = appController.getNavigationController();
-        beltCommand = navController.getBeltConnection().getCommandInterface();
+        beltController = appController.getBeltController();
+        beltConnection = appController.getBeltConnection();
 
         statusText = findViewById(R.id.statusText);
         startTestButton = findViewById(R.id.startTestButton);
@@ -116,11 +115,9 @@ public class InterpretationModeActivity extends AppCompatActivity {
         int vibrationPosition = mapHeartRateToPosition(heartRate);
         lastSentTime = SystemClock.elapsedRealtime();
 
-        beltCommand.changeMode(BeltMode.APP);
-        navController.startNavigation(0, false, null);
-        beltCommand.changeMode(BeltMode.APP);
+        beltController.changeMode(BeltMode.APP);
         //beltCommand.vibrateAtPositions(new int[]{vibrationPosition}, 70, BeltVibrationSignal.NEXT_WAYPOINT_AREA_REACHED, 1, false);
-        beltCommand.pulseAtPositions(new int[]{vibrationPosition}, 1000, 1000, 1, 50, 1, true);
+        beltController.pulseAtPositions(new int[]{vibrationPosition}, 1000, 1000, 1, 50, 1, true);
 
         if (heartRate > 100 || heartRate < 60) {
             lastCriticalTime = lastSentTime;
@@ -160,8 +157,8 @@ public class InterpretationModeActivity extends AppCompatActivity {
         writeToLogFile("Test beendet. Durchschnittliche Reaktionszeit: " + avgReactionTime + " ms\n");
 
         // Navigation und Vibration stoppen
-        navController.stopNavigation();
-        beltCommand.vibrateAtPositions(new int[]{}, 0, BeltVibrationSignal.NEXT_WAYPOINT_AREA_REACHED, 0, false);
+        beltController.stopVibration();
+        beltController.changeMode(BeltMode.WAIT);
     }
 
     private void writeToLogFile(String data) {

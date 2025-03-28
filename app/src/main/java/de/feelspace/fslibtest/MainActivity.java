@@ -2,6 +2,7 @@ package de.feelspace.fslibtest;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
@@ -27,6 +28,8 @@ import de.feelspace.fslib.BeltCommandInterface;
 import de.feelspace.fslib.BeltCommandListener;
 import de.feelspace.fslib.BeltCommunicationController;
 import de.feelspace.fslib.BeltCommunicationListener;
+import de.feelspace.fslib.BeltConnectionInterface;
+import de.feelspace.fslib.BeltConnectionListener;
 import de.feelspace.fslib.BeltConnectionState;
 import de.feelspace.fslib.BeltMode;
 import de.feelspace.fslib.BeltOrientation;
@@ -45,7 +48,7 @@ import java.util.Random;
 
 
 public class MainActivity extends BluetoothCheckActivity implements BluetoothCheckCallback,
-        NavigationEventListener, BeltCommandListener, BeltCommunicationListener {
+        BeltConnectionListener, BeltCommandListener, BeltCommunicationListener {
     // Debug
     @SuppressWarnings("unused")
     private static final String DEBUG_TAG = "FeelSpace-Debug";
@@ -82,7 +85,8 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
         appController.init(getApplicationContext());
 
         // Navigation controller
-        appController.getNavigationController().addNavigationEventListener(this);
+        appController.getBeltController().addCommandListener(this);
+        appController.getBeltConnection().addConnectionListener(this);
 
         // Connection state
         connectionStateTextView = findViewById(R.id.activity_main_connection_state_text_view);
@@ -96,9 +100,9 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
         // Disconnect button
         disconnectButton = findViewById(R.id.activity_main_disconnect_button);
         disconnectButton.setOnClickListener(view -> {
-            NavigationController navController = appController.getNavigationController();
-            if (navController != null) {
-                navController.disconnectBelt();
+            BeltConnectionInterface beltConnection = appController.getBeltConnection();
+            if (beltConnection != null) {
+                beltConnection.disconnect();
             }
         });
 
@@ -144,9 +148,9 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
     private void updateConnectionLabel() {
         runOnUiThread(() -> {
             BeltConnectionState state = BeltConnectionState.STATE_DISCONNECTED;
-            NavigationController navController = appController.getNavigationController();
-            if (navController != null) {
-                state = navController.getConnectionState();
+            BeltConnectionInterface beltConnection = appController.getBeltConnection();
+            if (beltConnection != null) {
+                state = beltConnection.getState();
             }
             switch (state) {
                 case STATE_DISCONNECTED:
@@ -180,9 +184,9 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
     private void updateConnectionButtons() {
         runOnUiThread(() -> {
             BeltConnectionState state = BeltConnectionState.STATE_DISCONNECTED;
-            NavigationController navController = appController.getNavigationController();
-            if (navController != null) {
-                state = navController.getConnectionState();
+            BeltConnectionInterface beltConnection = appController.getBeltConnection();
+            if (beltConnection != null) {
+                state = beltConnection.getState();
             }
             switch (state) {
                 case STATE_DISCONNECTED:
@@ -205,9 +209,8 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
     @SuppressLint("SetTextI18n")
     private void updateOrientationTextView() {
         runOnUiThread(() -> {
-            BeltCommandInterface beltCommand = appController.getNavigationController()
-                    .getBeltConnection().getCommandInterface();
-            BeltOrientation orientation = beltCommand.getOrientation();
+            BeltCommandInterface beltController = appController.getBeltController();
+            BeltOrientation orientation = beltController.getOrientation();
             Integer h = (orientation==null)?null:orientation.getControlBoxHeading();
             Integer p = (orientation==null)?null:orientation.getControlBoxPitch();
             Integer r = (orientation==null)?null:orientation.getControlBoxRoll();
@@ -239,9 +242,8 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
     @SuppressLint("SetTextI18n")
     private void updateSensorStatusTextView() {
         runOnUiThread(() -> {
-            BeltCommandInterface beltCommand = appController.getNavigationController()
-                    .getBeltConnection().getCommandInterface();
-            BeltOrientation orientation = beltCommand.getOrientation();
+            BeltCommandInterface beltController = appController.getBeltController();
+            BeltOrientation orientation = beltController.getOrientation();
             if (orientation == null || orientation.getMagnetometerStatus() == null) {
                 sensorStatusTextView.setText("Mag. status: -");
             } else {
@@ -255,9 +257,8 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
     @SuppressLint("SetTextI18n")
     private void updateModusView() {
         runOnUiThread(() -> {
-            BeltCommandInterface beltCommand = appController.getNavigationController()
-                    .getBeltConnection().getCommandInterface();
-            BeltMode mode = beltCommand.getMode();
+            BeltCommandInterface beltController = appController.getBeltController();
+            BeltMode mode = beltController.getMode();
             if (mode == null) {
                 modeView.setText("Mode: ");
             } else {
@@ -268,17 +269,7 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
         });
     }
 
-    // MARK: Implementation of NavigationEventListener
-
-    @Override
-    public void onNavigationStateChanged(NavigationState state) {
-
-    }
-
-    @Override
-    public void onBeltHomeButtonPressed(boolean navigating) {
-
-    }
+    // MARK: Implementation of belt listeners
 
     @Override
     public void onBeltModeChanged(BeltMode mode) {
@@ -302,16 +293,6 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
 
     @Override
     public void onBeltOrientationUpdated(BeltOrientation orientation) {
-
-    }
-
-    @Override
-    public void onBeltCompassAccuracySignalStateNotified(boolean signalEnabled) {
-
-    }
-
-    @Override
-    public void onBeltOrientationUpdated(int beltHeading, boolean accurate) {
         long timeMillis = (System.nanoTime()/1000000);
         if ((timeMillis-lastOrientationUpdateTimeMillis) > MIN_PERIOD_ORIENTATION_UPDATE_MILLIS) {
             updateOrientationTextView();
@@ -321,28 +302,12 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
     }
 
     @Override
-    public void onBeltBatteryLevelUpdated(int batteryLevel, PowerStatus status) {
+    public void onBeltCompassAccuracySignalStateNotified(boolean signalEnabled) {
 
     }
 
     @Override
-    public void onCompassAccuracySignalStateUpdated(boolean enabled) {
-
-    }
-
-    @Override
-    public void onBeltConnectionStateChanged(BeltConnectionState state) {
-        Log.e("TAG", String.valueOf(state));
-        updateUI();
-    }
-
-    @Override
-    public void onBeltConnectionLost() {
-        showToast("Belt connection lost!");
-    }
-
-    @Override
-    public void onBeltConnectionFailed() {
+    public void onScanFailed() {
         showToast("Belt connection fails!");
     }
 
@@ -351,13 +316,39 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
         showToast("No belt found!");
     }
 
+    @Override
+    public void onBeltFound(BluetoothDevice belt) {
+
+    }
+
+    @Override
+    public void onConnectionStateChange(BeltConnectionState state) {
+        Log.e("TAG", String.valueOf(state));
+        updateUI();
+    }
+
+    @Override
+    public void onConnectionLost() {
+        showToast("Belt connection lost!");
+    }
+
+    @Override
+    public void onConnectionFailed() {
+        showToast("Belt connection fails!");
+    }
+
+    @Override
+    public void onPairingFailed() {
+        showToast("Belt connection fails!");
+    }
+
     // MARK: Implementation of `BluetoothCheckCallback`
 
     @Override
     public void onBluetoothReady() {
-        NavigationController navController = appController.getNavigationController();
+        BeltConnectionInterface navController = appController.getBeltConnection();
         if (navController != null) {
-            navController.searchAndConnectBelt();
+            navController.scanAndConnect();
         }
     }
 
@@ -380,19 +371,11 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
 
     private void sendPulseAtPositions() {
         Log.i("TAG", "Test");
-        NavigationController navController = appController.getNavigationController();
-        BeltCommandInterface beltCommand = appController.getNavigationController()
-                .getBeltConnection().getCommandInterface();
+        BeltCommandInterface beltController = appController.getBeltController();
 
-        navController.startNavigation(0, false, BeltVibrationSignal.NAVIGATION);
-        //beltCommand.changeMode(BeltMode.APP);
-        // App-Modus aktivieren
-        boolean test = beltCommand.changeMode(BeltMode.APP);
-        //navController.stopNavigation();
-        Log.e("TAG", String.valueOf(test));
-
+        beltController.changeMode(BeltMode.APP);
         int[] positions = {0, 6};
-        beltCommand.vibrateAtPositions(positions, 100, BeltVibrationSignal.NAVIGATION, 3, false);
+        beltController.vibrateAtPositions(positions, 100, BeltVibrationSignal.NAVIGATION, 3, false);
     }
 
     @Override
@@ -404,6 +387,5 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
         Intent intent = new Intent(this, InterpretationModeActivity.class);
         startActivity(intent);
     }
-
 
 }

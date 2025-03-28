@@ -7,6 +7,7 @@ import androidx.annotation.Nullable;
 
 import java.util.ArrayList;
 
+import de.feelspace.fslib.BeltCommandInterface;
 import de.feelspace.fslib.BeltCommunicationController;
 import de.feelspace.fslib.BeltCommunicationInterface;
 //import de.feelspace.fslib.BeltConnectionController;
@@ -26,10 +27,10 @@ public class AppController {
     // Application context
     private @Nullable Context applicationContext;
 
-    // Belt controller
-    private NavigationController navigationController;
+    // Belt controller and connection
+    private BeltCommandInterface beltController;
+    private BeltConnectionInterface beltConnection;
 
-    //private BeltConnectionController beltConnectionController;
     /**
      * Private constructor for singleton.
      */
@@ -63,21 +64,18 @@ public class AppController {
         if (this.applicationContext == null) {
             // Keep application context
             this.applicationContext = applicationContext;
-            // Initialize the navigation controller
-            this.navigationController = new NavigationController(applicationContext);
-            // Initialize the belt connection controller
-            //this.beltConnectionController = new BeltConnectionController(applicationContext);
+            // Initialize the belt controller
+            this.beltConnection = BeltConnectionInterface.create(applicationContext);
+            this.beltController = this.beltConnection.getCommandInterface();
         }
     }
 
-    public NavigationController getNavigationController() {
-        return navigationController;
+    public BeltCommandInterface getBeltController() {
+        return this.beltController;
     }
 
-    /*
-    public BeltConnectionController getBeltConnectionController() {
-        return beltConnectionController;
+    public BeltConnectionInterface getBeltConnection() {
+        return this.beltConnection;
     }
 
-     */
 }
