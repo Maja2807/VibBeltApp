@@ -76,6 +76,8 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
     private static final long MIN_PERIOD_ORIENTATION_UPDATE_MILLIS = 250;
     private static final int REQUEST_BLUETOOTH_PERMISSIONS = 1;
 
+    private Handler handler = new Handler();
+
     // MARK: Activity methods overriding
 
     @Override
@@ -120,9 +122,13 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
 
         modeView = findViewById(R.id.modeView);
 
-        //test Vibration
+        //Training A - Min zu Max
         Button btnVibrate = findViewById(R.id.btnVibrate);
-        btnVibrate.setOnClickListener(v -> sendPulseAtPositions());
+        btnVibrate.setOnClickListener(v -> vibrateLeftToRight());
+
+        //Training B - Max zu Min
+        Button btnVibrateB = findViewById(R.id.btnVibrateB);
+        btnVibrateB.setOnClickListener(v -> vibrateRightToLeft());
 
         //Reaktionszeitmodus
         Button reactionTestButton = findViewById(R.id.button_start_reaction_mode);
@@ -459,30 +465,66 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
         showToast("Unsupported BLE feature!");
     }
 
+    private void vibrateLeftToRight() {
+        // Definiere die Anzahl der Positionen (z. B. 8 Positionen von 0 bis 7)
+        int[] positions = new int[]{0, 1, 2, 3, 4, 5, 6, 7};
 
+        // Dauer der Vibration für jede Position (in Millisekunden)
+        int vibrationDuration = 500; // 200 ms pro Position, nach Bedarf anpassen
 
-    private void sendPulseAtPositions() {
-        Log.i("TAG", "Test");
-        //NavigationController navController = appController.getNavigationController();
-        //BeltCommandInterface beltCommand = appController.getNavigationController()
-                //.getBeltConnection().getCommandInterface();
-
-        BeltConnectionController connectionController = appController.getBeltConnectionController();
         BeltCommandInterface beltCommand = appController.getBeltConnectionController().getCommunicationInterface();
-
-        //navController.startNavigation(0, false, BeltVibrationSignal.NAVIGATION);
-        //beltCommand.changeMode(BeltMode.APP);
-        // App-Modus aktivieren
-        boolean test = beltCommand.changeMode(BeltMode.APP);
-        //navController.stopNavigation();
-        Log.e("TAG", String.valueOf(test));
-
-        int[] positions = {0};
-        //beltCommand.vibrateAtPositions(positions, 100, BeltVibrationSignal.NAVIGATION, 3, false);
         beltCommand.changeMode(BeltMode.APP);
-        BeltMode mode = beltCommand.getMode();
-        Log.d("TAG", String.valueOf(mode));
-        beltCommand.pulseAtPositions(positions, 1000, 1000, 1, 50, 1, false);
+
+        // Erstelle ein Runnable, das die Vibrationen nacheinander auslöst
+        handler.post(new Runnable() {
+            int index = 0;
+
+            @Override
+            public void run() {
+                if (index < positions.length) {
+                    // Vibrieren an der aktuellen Position
+                    beltCommand.pulseAtPositions(new int[]{positions[index]}, vibrationDuration, 500, 1, 50, 1, false);
+                    Log.d("BeltDebug", "Vibration an Position " + positions[index]);
+
+                    // Gehe zur nächsten Position
+                    index++;
+
+                    // Wiederhole den Vorgang mit einer kurzen Verzögerung (hier 300 ms)
+                    handler.postDelayed(this, 300); // Pause zwischen den Vibrationen
+                }
+            }
+        });
+    }
+
+    private void vibrateRightToLeft() {
+        // Definiere die Anzahl der Positionen (z. B. 8 Positionen von 0 bis 7)
+        int[] positions = new int[]{7, 6, 5, 4, 3, 2, 1, 0};
+
+        // Dauer der Vibration für jede Position (in Millisekunden)
+        int vibrationDuration = 500; // 200 ms pro Position, nach Bedarf anpassen
+
+        BeltCommandInterface beltCommand = appController.getBeltConnectionController().getCommunicationInterface();
+        beltCommand.changeMode(BeltMode.APP);
+
+        // Erstelle ein Runnable, das die Vibrationen nacheinander auslöst
+        handler.post(new Runnable() {
+            int index = 0;
+
+            @Override
+            public void run() {
+                if (index < positions.length) {
+                    // Vibrieren an der aktuellen Position
+                    beltCommand.pulseAtPositions(new int[]{positions[index]}, vibrationDuration, 500, 1, 50, 1, false);
+                    Log.d("BeltDebug", "Vibration an Position " + positions[index]);
+
+                    // Gehe zur nächsten Position
+                    index++;
+
+                    // Wiederhole den Vorgang mit einer kurzen Verzögerung (hier 300 ms)
+                    handler.postDelayed(this, 300); // Pause zwischen den Vibrationen
+                }
+            }
+        });
     }
 
     @Override
