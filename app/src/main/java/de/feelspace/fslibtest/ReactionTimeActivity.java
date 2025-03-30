@@ -16,6 +16,7 @@ import java.util.Random;
 
 import de.feelspace.fslib.BeltCommandInterface;
 import de.feelspace.fslib.BeltConnectionInterface;
+import de.feelspace.fslib.BeltConnectionState;
 import de.feelspace.fslib.BeltMode;
 import de.feelspace.fslib.BeltVibrationSignal;
 import de.feelspace.fslib.NavigationController;
@@ -56,19 +57,60 @@ public class ReactionTimeActivity extends AppCompatActivity {
         backButton.setVisibility(View.GONE); // Zurück-Button ausblenden
         startTestButton.setEnabled(false);
 
-        if (beltCommand == null) {
+        if (beltController == null) {
             Log.e("BeltError", "BeltCommandInterface ist null! Verbindung fehlt?");
         } else {
             Log.d("BeltSuccess", "BeltCommandInterface vorhanden. Wechsle in APP-Modus.");
-            beltCommand.changeMode(BeltMode.APP);
+            beltController.changeMode(BeltMode.APP);
         }
 
-        BeltConnectionState connectionState = connectionController.getState();
+        BeltConnectionState connectionState = beltConnection.getState();
         Log.d("BeltDebug", "Verbindungsstatus: " + connectionState);
         scheduleNextVibration();
     }
-
     private void scheduleNextVibration() {
+        if (remainingVibrations <= 0) {
+            finishTest();
+            return;
+        }
+
+        long delay = random.nextInt(9990) + 15; // Zufällige Pause (10 ms – 15 s)
+        Log.d("ReactionTimeTest", "Delay bis nächste Vibration: " + delay + " ms");
+
+        handler.postDelayed(() -> {
+            // Vibration senden
+            beltController.changeMode(BeltMode.APP);
+            handler.postDelayed(() -> {
+                BeltMode currentMode = beltController.getMode();
+                //Log.d("BeltDebug", "Aktueller Modus: " + currentMode);
+                beltController.stopVibration();
+            }, 500);
+
+            //Log.d("ReactionTimeTest", "Vibration wird jetzt gesendet.");
+            beltController.pulseAtPositions(new int[]{15, 0}, 1000, 1000, 1, 50, 3, true);
+
+            vibrationStartTime = SystemClock.elapsedRealtime();
+            waitingForReaction = true;
+
+            // Handler für Reaktionszeit ohne Eingabe nach 5 Sekunden
+            handler.postDelayed(() -> {
+                if (waitingForReaction) {
+                    Log.d("ReactionTimeTest", "Keine Reaktion innerhalb von 5 Sekunden.");
+                    long reactionTime = 5000; // 5 Sekunden Reaktionszeit
+                    reactionTimes.add(reactionTime);  // Füge die 5 Sekunden Reaktionszeit hinzu
+                    Log.d("ReactionTimeTest", "Reaktion (Keine Antwort): " + reactionTime + " ms");
+                    waitingForReaction = false;
+                    remainingVibrations--;
+                    scheduleNextVibration();
+                }
+            }, 5000); // 5 Sekunden warten
+
+        }, delay);
+    }
+
+
+    //ohne 5s Timeout
+    /*private void scheduleNextVibration() {
 
         if (remainingVibrations <= 0) {
             finishTest();
@@ -83,13 +125,20 @@ public class ReactionTimeActivity extends AppCompatActivity {
             //Log.d("ReactionTimeTest", "Vibration an Position: " + position);
 
             beltController.changeMode(BeltMode.APP);
-            beltController.pulseAtPositions(new int[]{position}, 1000, 1, 50, 1, 1, true);
-
+            handler.postDelayed(() -> {
+                BeltMode currentMode = beltController.getMode();
+                Log.d("BeltDebug", "Aktueller Modus: " + currentMode);
+                beltController.stopVibration();
+            }, 500);
+            //beltController.stopVibration();
+            // Log-Ausgabe, wann die Vibration gesendet wird
+            Log.d("ReactionTimeTest", "Vibration wird jetzt gesendet.");
+            beltController.pulseAtPositions(new int[]{15, 0}, 1000, 1000, 1, 50, 3, true);
 
             vibrationStartTime = SystemClock.elapsedRealtime();
             waitingForReaction = true;
         }, delay);
-    }
+    }*/
 
     private void recordReactionTime() {
         if (waitingForReaction) {

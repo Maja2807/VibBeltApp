@@ -43,16 +43,16 @@ public class InterpretationModeActivity extends AppCompatActivity {
     private int currentIndex = 0;
 
     // Feste Herzfrequenzwerte
-    private static final int[] HEART_RATE_VALUES = {
+    private static final int[] HEART_RATE_VALUES = { //6x zu niedrig, 6x zu hoch
             94, 62, 75, 77, 60, 87, 91, 79, 38, 69, 93, 85, 79, 82, 99, 64, 74, 81, 82, 64,
             74, 94, 53, 79, 60, 82, 67, 79, 84, 82, 51, 80, 94, 94, 90, 94, 60, 85, 174, 86,
             64, 78, 79, 67, 80, 90, 58, 77, 83, 67, 99, 70, 77, 78, 80, 95, 85, 81, 83, 79,
             69, 98, 83, 86, 69, 89, 97, 78, 66, 72, 77, 66, 73, 164, 73, 97, 99, 136, 97, 96,
-            98, 79, 88, 76, 84, 73, 128, 31, 75, 65, 74, 66, 84, 95, 86, 62, 91, 84, 96, 61,
+            98, 79, 88, 76, 84, 73, 128, 80, 75, 65, 74, 66, 84, 95, 86, 62, 91, 84, 96, 61,
             80, 98, 70, 99, 77, 64, 89, 119, 90, 93, 97, 89, 72, 98, 81, 92, 94, 70, 87, 83,
             99, 61, 64, 68, 78, 81, 94, 72, 66, 70, 88, 75, 75, 69, 73, 63, 90, 80, 76, 80,
             91, 168, 63, 73, 84, 73, 67, 70, 85, 86, 61, 76, 92, 89, 63, 84, 62, 76, 97, 61,
-            96, 89, 97, 133, 70, 69, 86, 99, 90, 64, 75, 67, 99, 87, 86, 71, 98, 87, 68, 143
+            96, 89, 97, 86, 70, 69, 59, 41, 90, 64, 75, 67, 99, 100, 96, 92, 98, 87, 70, 73
     };
 
     @Override
@@ -115,8 +115,15 @@ public class InterpretationModeActivity extends AppCompatActivity {
         int vibrationPosition = mapHeartRateToPosition(heartRate);
         lastSentTime = SystemClock.elapsedRealtime();
 
+        handler.postDelayed(() -> {
+            BeltMode currentMode = beltController.getMode();
+            //Log.d("BeltDebug", "Aktueller Modus: " + currentMode);
+            beltController.stopVibration();
+        }, 500);
+
+        Log.d("MappingDebug", "HeartRate: " + heartRate + " → Position: " + vibrationPosition);
+
         beltController.changeMode(BeltMode.APP);
-        //beltCommand.vibrateAtPositions(new int[]{vibrationPosition}, 70, BeltVibrationSignal.NEXT_WAYPOINT_AREA_REACHED, 1, false);
         beltController.pulseAtPositions(new int[]{vibrationPosition}, 1000, 1000, 1, 50, 1, true);
 
         if (heartRate > 100 || heartRate < 60) {
@@ -130,16 +137,60 @@ public class InterpretationModeActivity extends AppCompatActivity {
     }
 
     private int mapHeartRateToPosition(int heartRate) {
-        return (int) ((heartRate - 30) / 150.0 * 15);
+        if (heartRate < 60) return 12;  // Kritisch niedrige Werte → links (12)
+        if (heartRate > 100) return 4; // Kritisch hohe Werte → rechts (4)
+
+        // Lineares Mapping der Herzfrequenz auf den Bereich zwischen 13 und 3
+        int position = 13 + (int) ((heartRate - 60) / 40.0 * 7);  // Berechnung im Bereich von 13 bis 3
+
+        return position % 16;  // Positionen im Bereich 12-4
     }
 
     private void recordReaction() {
-        // Berechnet die Reaktionszeit, indem die aktuelle Zeit mit der letzten gesendeten Vibration verglichen wird
-        long reactionTime = SystemClock.elapsedRealtime() - lastSentTime;
-        reactionTimes.add(reactionTime);
-        Log.d("InterpretationTest", "Reaktion erfasst: " + reactionTime + " ms");
-        writeToLogFile("Reaktion erfasst: " + reactionTime + " ms\n");
+        if (testRunning) {
+            // Überprüfen, ob die Reaktion auf den richtigen Pulswert war
+            int heartRate = HEART_RATE_VALUES[currentIndex - 1]; // Der Wert, auf den wir reagieren sollten
+            if (heartRate < 60 || heartRate > 100) {
+                long reactionTime = SystemClock.elapsedRealtime() - lastCriticalTime;
+                reactionTimes.add(reactionTime);
+                Log.d("Interpretationstest", "Korrekte Reaktion erfasst: " + reactionTime + " ms");
+                writeToLogFile("Korrekte Reaktion erfasst: " + reactionTime + " ms\n");
+            } else {
+                long reactionTime = SystemClock.elapsedRealtime() - lastCriticalTime;
+                reactionTimes.add(reactionTime);
+                // Falsche Reaktion, keine Reaktionszeit messen
+                Log.d("Interpretationstest", "Falsche Reaktion oder verspätet: " + reactionTime + " ms");
+                writeToLogFile("Falsche Reaktion oder verspätet: " + reactionTime + " ms\n");
+            }
+        }
     }
+
+    /*private void recordReaction() {
+        if (testRunning) {
+            // Überprüfen, ob die Reaktion auf den richtigen Pulswert war
+            int heartRate = HEART_RATE_VALUES[currentIndex - 1]; // Der Wert, auf den wir reagieren sollten
+            long currentTime = SystemClock.elapsedRealtime();
+
+            // Überprüfen, ob es sich um einen kritischen Wert handelt (zu niedrig oder zu hoch)
+            if (heartRate < 60 || heartRate > 100) {
+                // Überprüfen, ob die Reaktion innerhalb des Zeitlimits (3 Sekunden) erfolgt ist
+                if (currentTime - lastCriticalTime <= 3000) { // 3000 ms = 3 Sekunden
+                    long reactionTime = currentTime - lastCriticalTime;
+                    reactionTimes.add(reactionTime);
+                    Log.d("Interpretationstest", "Korrekte Reaktion erfasst: " + reactionTime + " ms");
+                    writeToLogFile("Korrekte Reaktion erfasst: " + reactionTime + " ms\n");
+                } else {
+                    // Reaktion zu spät (mehr als 3 Sekunden nach dem kritischen Wert)
+                    Log.d("Interpretationstest", "Reaktion zu spät (mehr als 3 Sekunden nach kritischem Wert).");
+                    writeToLogFile("Reaktion zu spät (mehr als 3 Sekunden nach kritischem Wert).\n");
+                }
+            } else {
+                // Falsche Reaktion, keine Reaktionszeit messen
+                Log.d("Interpretationstest", "Falsche Reaktion: Keine Reaktionszeit gemessen.");
+                writeToLogFile("Falsche Reaktion");
+            }
+        }
+    }*/
 
     private void endTest() {
         testRunning = false;
@@ -156,7 +207,7 @@ public class InterpretationModeActivity extends AppCompatActivity {
         Log.d("InterpretationTest", "Durchschnittliche Reaktionszeit: " + avgReactionTime + " ms");
         writeToLogFile("Test beendet. Durchschnittliche Reaktionszeit: " + avgReactionTime + " ms\n");
 
-        // Navigation und Vibration stoppen
+        // Vibration stoppen
         beltController.stopVibration();
         beltController.changeMode(BeltMode.WAIT);
     }

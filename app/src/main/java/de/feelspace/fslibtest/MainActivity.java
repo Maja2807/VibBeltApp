@@ -3,6 +3,8 @@ package de.feelspace.fslibtest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothGatt;
+import android.bluetooth.BluetoothGattCharacteristic;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
@@ -52,7 +54,6 @@ import java.util.Random;
 
 
 public class MainActivity extends BluetoothCheckActivity implements BluetoothCheckCallback,
-
         BeltConnectionListener, BeltCommandListener, BeltCommunicationListener {
 
     // Debug
@@ -389,31 +390,6 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
 
     }
 
-    @Override
-    public void onBeltFound(BluetoothDevice belt) {
-
-    }
-
-    @Override
-    public void onConnectionStateChange(BeltConnectionState state) {
-        updateUI();
-    }
-
-    @Override
-    public void onConnectionLost() {
-
-    }
-
-    @Override
-    public void onConnectionFailed() {
-
-    }
-
-    @Override
-    public void onPairingFailed() {
-
-    }
-
     // MARK: Implementation of `BluetoothCheckCallback`
 
     @Override
@@ -440,8 +416,8 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
     }
 
     private void vibrateLeftToRight() {
-        // Definiere die Anzahl der Positionen (z. B. 8 Positionen von 0 bis 7)
-        int[] positions = new int[]{0, 1, 2, 3, 4, 5, 6, 7};
+        // Bewegung von links nach rechts = 12 -> 4
+        int[] positions = new int[]{12, 13, 14, 15, 0, 1, 2, 3, 4};
 
         // Dauer der Vibration für jede Position (in Millisekunden)
         int vibrationDuration = 500; // 200 ms pro Position, nach Bedarf anpassen
@@ -457,7 +433,9 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
             public void run() {
                 if (index < positions.length) {
                     // Vibrieren an der aktuellen Position
-                    beltController.pulseAtPositions(new int[]{positions[index]}, vibrationDuration, 500, 1, 50, 1, false);
+                    beltController.changeMode(BeltMode.APP);
+                    beltController.stopVibration();
+                    beltController.pulseAtPositions(new int[]{positions[index]}, vibrationDuration, 500, 1, 50, 2, true);
                     Log.d("BeltDebug", "Vibration an Position " + positions[index]);
 
                     // Gehe zur nächsten Position
@@ -471,8 +449,8 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
     }
 
     private void vibrateRightToLeft() {
-        // Definiere die Anzahl der Positionen (z. B. 8 Positionen von 0 bis 7)
-        int[] positions = new int[]{7, 6, 5, 4, 3, 2, 1, 0};
+        // Bewegung von rechts nach links = 4 -> 12
+        int[] positions = new int[]{4, 3, 2, 1, 0, 15, 14, 13, 12};
 
         // Dauer der Vibration für jede Position (in Millisekunden)
         int vibrationDuration = 500; // 200 ms pro Position, nach Bedarf anpassen
