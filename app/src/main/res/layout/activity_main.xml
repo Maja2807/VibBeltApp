@@ -87,14 +87,14 @@
                 android:textAppearance="@style/TextAppearance.AppCompat.Medium" />
 
             <Button
-                android:id="@+id/btnVibrate"
+                android:id="@+id/btnVibrateB"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Training-A"
                 android:layout_centerInParent="true" />
 
             <Button
-                android:id="@+id/btnVibrateB"
+                android:id="@+id/btnVibrate"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Training-B"

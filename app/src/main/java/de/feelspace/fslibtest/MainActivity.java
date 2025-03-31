@@ -122,11 +122,11 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
 
         modeView = findViewById(R.id.modeView);
 
-        //Training A - Min zu Max
+        //Training B - Min zu Max
         Button btnVibrate = findViewById(R.id.btnVibrate);
         btnVibrate.setOnClickListener(v -> vibrateLeftToRight());
 
-        //Training B - Max zu Min
+        //Training A - Max zu Min
         Button btnVibrateB = findViewById(R.id.btnVibrateB);
         btnVibrateB.setOnClickListener(v -> vibrateRightToLeft());
 
