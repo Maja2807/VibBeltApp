@@ -122,13 +122,13 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
 
         modeView = findViewById(R.id.modeView);
 
-        //Training B - Min zu Max
+        //Training B - Max zu Min
         Button btnVibrate = findViewById(R.id.btnVibrate);
-        btnVibrate.setOnClickListener(v -> vibrateLeftToRight());
+        btnVibrate.setOnClickListener(v -> vibrateRightToLeft());
 
-        //Training A - Max zu Min
+        //Training A - Min zu Max
         Button btnVibrateB = findViewById(R.id.btnVibrateB);
-        btnVibrateB.setOnClickListener(v -> vibrateRightToLeft());
+        btnVibrateB.setOnClickListener(v -> vibrateLeftToRight());
 
         //Reaktionszeitmodus
         Button reactionTestButton = findViewById(R.id.button_start_reaction_mode);
@@ -154,8 +154,8 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
     private void updateUI() {
         updateConnectionLabel();
         updateConnectionButtons();
-        updateOrientationTextView();
-        updateSensorStatusTextView();
+        //updateOrientationTextView();
+        //updateSensorStatusTextView();
         updateModusView();
     }
 
@@ -251,7 +251,7 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
             }
         });
     }
-
+/*
     @SuppressLint("SetTextI18n")
     private void updateOrientationTextView() {
         runOnUiThread(() -> {
@@ -299,7 +299,7 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
             }
         });
     }
-
+*/
     @SuppressLint("SetTextI18n")
     private void updateModusView() {
         runOnUiThread(() -> {
@@ -340,12 +340,14 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
 
     @Override
     public void onBeltOrientationUpdated(BeltOrientation orientation) {
+       /*
         long timeMillis = (System.nanoTime()/1000000);
         if ((timeMillis-lastOrientationUpdateTimeMillis) > MIN_PERIOD_ORIENTATION_UPDATE_MILLIS) {
             updateOrientationTextView();
             updateSensorStatusTextView();
             lastOrientationUpdateTimeMillis = timeMillis;
         }
+        */
     }
 
     @Override
@@ -372,6 +374,16 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
     public void onConnectionStateChange(BeltConnectionState state) {
         Log.e("TAG", String.valueOf(state));
         updateUI();
+
+        if (state == BeltConnectionState.STATE_CONNECTED) {
+            BeltCommandInterface beltController = appController.getBeltController();
+            if (beltController != null) {
+                beltController.changeMode(BeltMode.APP); // Kompass-Modus deaktivieren
+                beltController.stopVibration(); // Sicherstellen, dass keine alten Vibrationen weiterlaufen
+                beltController.changeCompassAccuracySignalState(false, true);
+            }
+        }
+
     }
 
     @Override
@@ -424,6 +436,7 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
 
         BeltCommandInterface beltController = appController.getBeltController();
         beltController.changeMode(BeltMode.APP);
+        beltController.changeCompassAccuracySignalState(false, true);
 
         // Erstelle ein Runnable, das die Vibrationen nacheinander auslöst
         handler.post(new Runnable() {
