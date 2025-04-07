@@ -38,6 +38,7 @@ import de.feelspace.fslib.BeltMode;
 import de.feelspace.fslib.BeltOrientation;
 import de.feelspace.fslib.BeltParameter;
 import de.feelspace.fslib.BeltVibrationSignal;
+import de.feelspace.fslib.LatencyTester;
 import de.feelspace.fslib.NavigationController;
 import de.feelspace.fslib.NavigationEventListener;
 import de.feelspace.fslib.NavigationState;
@@ -428,6 +429,7 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
     }
 
     private void vibrateLeftToRight() {
+        //Log.d("Test", String.valueOf(lastCommandSentTimeNano));
         // Bewegung von links nach rechts = 12 -> 4
         int[] positions = new int[]{12, 13, 14, 15, 0, 1, 2, 3, 4};
 

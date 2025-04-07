@@ -35,6 +35,9 @@ public class ReactionTimeActivity extends AppCompatActivity {
     private BeltCommandInterface beltController;
     private BeltConnectionInterface beltConnection;
 
+    private List<Long> latencyTimes = new ArrayList<>();
+    private long sendTime;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -78,18 +81,22 @@ public class ReactionTimeActivity extends AppCompatActivity {
         Log.d("ReactionTimeTest", "Delay bis nächste Vibration: " + delay + " ms");
 
         handler.postDelayed(() -> {
-            // Vibration senden
             beltController.changeMode(BeltMode.APP);
-            handler.postDelayed(() -> {
+            /*handler.postDelayed(() -> {
                 BeltMode currentMode = beltController.getMode();
                 //Log.d("BeltDebug", "Aktueller Modus: " + currentMode);
                 beltController.stopVibration();
-            }, 500);
+            }, 500);*/
 
+            sendTime = SystemClock.elapsedRealtime();
             //Log.d("ReactionTimeTest", "Vibration wird jetzt gesendet.");
             beltController.pulseAtPositions(new int[]{15, 0}, 1000, 1000, 1, 50, 3, true);
 
             vibrationStartTime = SystemClock.elapsedRealtime();
+            long latency = vibrationStartTime - sendTime;
+            latencyTimes.add(latency);
+            Log.d("ReactionTimeTest", "Latenz: " + latency + " ms");
+
             waitingForReaction = true;
 
             // Handler für Reaktionszeit ohne Eingabe nach 5 Sekunden
@@ -174,6 +181,18 @@ public class ReactionTimeActivity extends AppCompatActivity {
         } else {
             Log.d("ReactionTimeTest", "Keine gültigen Reaktionszeiten erfasst.");
         }
+
+        if (!latencyTimes.isEmpty()) {
+            long sum = 0;
+            for (long time : latencyTimes) {
+                sum += time;
+            }
+            long averageLatency = sum / latencyTimes.size();
+            Log.d("ReactionTimeTest", "Durchschnittliche Latenz: " + averageLatency + " ms");
+        } else {
+            Log.d("ReactionTimeTest", "Keine gültigen Latenzen erfasst.");
+        }
+
 
         backButton.setVisibility(View.VISIBLE);
         startTestButton.setEnabled(true);

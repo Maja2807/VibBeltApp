@@ -41,6 +41,8 @@ public class InterpretationModeActivity extends AppCompatActivity {
     private static final int UPDATE_RATE_MS = 1000; // 1 Sekunde
     private FileWriter logFileWriter;
     private int currentIndex = 0;
+    private long lastReceivedTime;
+    private ArrayList<Long> latencyMeasurements = new ArrayList<>();
 
     // Feste Herzfrequenzwerte
     private static final int[] HEART_RATE_VALUES = { //6x zu niedrig, 6x zu hoch
@@ -126,6 +128,11 @@ public class InterpretationModeActivity extends AppCompatActivity {
         beltController.changeMode(BeltMode.APP);
         beltController.pulseAtPositions(new int[]{vibrationPosition}, 1000, 1000, 1, 50, 1, true);
 
+        lastReceivedTime = SystemClock.elapsedRealtime();
+        long latency = lastReceivedTime - lastSentTime;
+        latencyMeasurements.add(latency);
+        //Log.d("InterpretationTest", "Latenz gemessen: " + latency + " ms");
+
         if (heartRate > 100 || heartRate < 60) {
             lastCriticalTime = lastSentTime;
             Log.d("InterpretationTest", "⚠ Kritischer Wert gesendet: " + heartRate + " BPM");
@@ -206,6 +213,13 @@ public class InterpretationModeActivity extends AppCompatActivity {
         long avgReactionTime = reactionTimes.isEmpty() ? 0 : sum / reactionTimes.size();
         Log.d("InterpretationTest", "Durchschnittliche Reaktionszeit: " + avgReactionTime + " ms");
         writeToLogFile("Test beendet. Durchschnittliche Reaktionszeit: " + avgReactionTime + " ms\n");
+
+        long latencySum = 0;
+        for (long time : latencyMeasurements) {
+            latencySum += time;
+        }
+        long avgLatency = latencyMeasurements.isEmpty() ? 0 : latencySum / latencyMeasurements.size();
+        Log.d("InterpretationTest", "Durchschnittliche Latenz: " + avgLatency + " ms");
 
         // Vibration stoppen
         beltController.stopVibration();

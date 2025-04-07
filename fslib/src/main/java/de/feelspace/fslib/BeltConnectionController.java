@@ -76,6 +76,8 @@ public class BeltConnectionController extends BeltConnectionInterface implements
         gattController = new GattController(executor);
         gattController.addGattEventListener(this);
         communicationController = new BeltCommunicationController(gattController);
+        // für Bluetooth Latenz
+        gattController.addGattEventListener(communicationController);
         scanner = new BluetoothScanner(executor,this);
     }
 

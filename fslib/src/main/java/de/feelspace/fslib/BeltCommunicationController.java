@@ -25,6 +25,8 @@ import java.util.UUID;
  */
 public class BeltCommunicationController implements BeltCommunicationInterface,
         GattController.GattEventListener {
+    //für Bluetooth Latenz
+    private long lastCommandSentTimeNano = -1;
 
     // Debug
     @SuppressWarnings("unused")
@@ -71,6 +73,7 @@ public class BeltCommunicationController implements BeltCommunicationInterface,
     public static final UUID VIBRATION_COMMAND_CHAR_UUID =
             UUID.fromString("0000FE03-0000-1000-8000-00805F9B34FB");
     private @Nullable BluetoothGattCharacteristic vibrationCommandChar;
+    private boolean vibrationNotificationsActive = false;
 
     /** Button press notification characteristic UUID. */
     private static final UUID BUTTON_PRESS_NOTIFICATION_CHAR_UUID =
@@ -160,6 +163,8 @@ public class BeltCommunicationController implements BeltCommunicationInterface,
     private @NonNull ArrayList<BeltCommunicationListener> communicationListeners =
             new ArrayList<>();
 
+    private LatencyTester latencyTester;
+
     /**
      * Constructor.
      * @param gattController The GATT controller to communicate with the belt.
@@ -212,6 +217,11 @@ public class BeltCommunicationController implements BeltCommunicationInterface,
             return;
         }
         // Notifications
+        /*if (!gattController.setCharacteristicNotificationIndication(vibrationCommandChar, true, false)) {
+            handshakeStarted = false;
+            this.handshakeCallback.onHandshakeCompleted(false);
+            return;
+        }*/
         if (!gattController.setCharacteristicNotificationIndication(keepAliveChar, true, false)) {
             handshakeStarted = false;
             this.handshakeCallback.onHandshakeCompleted(false);
@@ -1418,7 +1428,9 @@ public class BeltCommunicationController implements BeltCommunicationInterface,
                 orientationDataNotificationsActive = enable;
             } else if (characteristic == debugOutputChar) {
                 debugOutputNotificationsActive = enable;
-            }
+            } //else if (characteristic == vibrationCommandChar){
+               // vibrationNotificationsActive = enable;
+            //}
         }
     }
 
@@ -1455,6 +1467,11 @@ public class BeltCommunicationController implements BeltCommunicationInterface,
                 }
             }
         }
+
+        if (latencyTester != null) {
+            latencyTester.onCharacteristicRead(characteristic);
+        }
+
     }
 
     @Override
@@ -1466,7 +1483,26 @@ public class BeltCommunicationController implements BeltCommunicationInterface,
     @Override
     public void onCharacteristicChanged(@Nullable BluetoothGattCharacteristic characteristic,
                                         @Nullable byte[] value) {
+
+        // Bluetooth Latenz
+        if (characteristic == vibrationCommandChar && lastCommandSentTimeNano != -1) {
+            long responseTimeNano = System.nanoTime();
+            long latencyMicros = (responseTimeNano - lastCommandSentTimeNano) / 1000;
+            Log.d("LATENCY_LOGGER", "Latenz: " + latencyMicros + " µs (" + (latencyMicros / 1000.0) + " ms)");
+
+            // Optional: Reset für nächste Messung
+            lastCommandSentTimeNano = -1;
+        }
+
         if (characteristic == keepAliveChar) {
+/*
+            long responseTimeNano = System.nanoTime();
+            long latencyMicros = (responseTimeNano - lastCommandSentTimeNano) / 1000;
+            Log.d("LATENCY_LOGGER", "Latenz: " + latencyMicros + " µs (" + (latencyMicros / 1000.0) + " ms)");
+
+            // Optional: Reset für nächste Messung
+            lastCommandSentTimeNano = -1;
+*/
             // Retrieve mode
             BeltMode currentMode = null;
             if (value != null && value.length >= 2) {
@@ -1594,12 +1630,32 @@ public class BeltCommunicationController implements BeltCommunicationInterface,
         } else if (characteristic == batteryStatusChar) {
             try {
                 setBatteryStatus(new BeltBatteryStatus(value));
+               /* long responseTimeNano = System.nanoTime();
+                long latencyMicros = (responseTimeNano - lastCommandSentTimeNano) / 1000;
+                Log.d("LATENCY_LOGGER", "Latenz Batterie: " + latencyMicros + " µs (" + (latencyMicros / 1000.0) + " ms)");
+
+                // Optional: Reset für nächste Messung
+                lastCommandSentTimeNano = -1;
+
+                */
             } catch (Exception e) {
                 Log.e(DEBUG_TAG, "BeltCommunicationController: Malformed packet read on " +
                                 "battery status characteristic",
                         e);
             }
+            if (characteristic == batteryStatusChar && lastCommandSentTimeNano != -1) {
+                long responseTimeNano = System.nanoTime();
+                long latencyMicros = (responseTimeNano - lastCommandSentTimeNano) / 1000;
+                Log.d("LATENCY_LOGGER", "Battery Read Latenz: " + latencyMicros + " µs (" + (latencyMicros / 1000.0) + " ms)");
+
+                lastCommandSentTimeNano = -1;
+            }
         }
+    }
+
+    public void testBatteryLatency() {
+        lastCommandSentTimeNano = System.nanoTime();
+        gattController.readCharacteristic(batteryStatusChar);
     }
 
     @Override
@@ -1630,6 +1686,9 @@ public class BeltCommunicationController implements BeltCommunicationInterface,
         if (!batteryStatusNotificationsActive) {
             return false;
         }
+        //if (!vibrationNotificationsActive) {
+           // return false;
+        //}
         // Check parameters
         if (beltMode == BeltMode.UNKNOWN) {
             return false;
@@ -1642,5 +1701,20 @@ public class BeltCommunicationController implements BeltCommunicationInterface,
         }
         return true;
     }
+
+    public void startLatencyTest() {
+        if (batteryStatusChar != null) {
+            latencyTester = new LatencyTester(
+                    batteryStatusChar,
+                    gattController,
+                    10, // Anzahl Wiederholungen
+                    (latencies, avg) -> {
+                        Log.i("LATENCY", "⏱️ Durchschnittliche Latenz: " + avg + " µs");
+                    }
+            );
+            latencyTester.startTest();
+        }
+    }
+
 
 }
