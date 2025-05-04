@@ -82,16 +82,11 @@ public class ReactionTimeActivity extends AppCompatActivity {
 
         handler.postDelayed(() -> {
             beltController.changeMode(BeltMode.APP);
-            /*handler.postDelayed(() -> {
-                BeltMode currentMode = beltController.getMode();
-                //Log.d("BeltDebug", "Aktueller Modus: " + currentMode);
-                beltController.stopVibration();
-            }, 500);*/
 
             sendTime = SystemClock.elapsedRealtime();
-            //Log.d("ReactionTimeTest", "Vibration wird jetzt gesendet.");
-            beltController.pulseAtPositions(new int[]{15, 0}, 1000, 1000, 1, 50, 3, true);
+            beltController.pulseAtPositions(new int[]{15, 0}, 1000, 1000, 1, 50, 3, true); // Vibrationen vorn
 
+            // Latenz
             vibrationStartTime = SystemClock.elapsedRealtime();
             long latency = vibrationStartTime - sendTime;
             latencyTimes.add(latency);
@@ -171,6 +166,7 @@ public class ReactionTimeActivity extends AppCompatActivity {
     private void finishTest() {
         Log.d("ReactionTimeTest", "Alle Reaktionszeiten: " + reactionTimes.toString());
 
+        // Reaktionszeiten berechnen
         if (!reactionTimes.isEmpty()) {
             long sum = 0;
             for (long time : reactionTimes) {
@@ -182,6 +178,7 @@ public class ReactionTimeActivity extends AppCompatActivity {
             Log.d("ReactionTimeTest", "Keine gültigen Reaktionszeiten erfasst.");
         }
 
+        // Latenzzeiten berechnen
         if (!latencyTimes.isEmpty()) {
             long sum = 0;
             for (long time : latencyTimes) {

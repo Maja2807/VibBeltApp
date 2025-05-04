@@ -429,12 +429,11 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
     }
 
     private void vibrateLeftToRight() {
-        //Log.d("Test", String.valueOf(lastCommandSentTimeNano));
         // Bewegung von links nach rechts = 12 -> 4
         int[] positions = new int[]{12, 13, 14, 15, 0, 1, 2, 3, 4};
 
         // Dauer der Vibration für jede Position (in Millisekunden)
-        int vibrationDuration = 500; // 200 ms pro Position, nach Bedarf anpassen
+        int vibrationDuration = 500;
 
         BeltCommandInterface beltController = appController.getBeltController();
         beltController.changeMode(BeltMode.APP);
@@ -456,8 +455,8 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
                     // Gehe zur nächsten Position
                     index++;
 
-                    // Wiederhole den Vorgang mit einer kurzen Verzögerung (hier 300 ms)
-                    handler.postDelayed(this, 300); // Pause zwischen den Vibrationen
+                    // Pause zwischen den Vibrationen
+                    handler.postDelayed(this, 300);
                 }
             }
         });
@@ -468,7 +467,7 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
         int[] positions = new int[]{4, 3, 2, 1, 0, 15, 14, 13, 12};
 
         // Dauer der Vibration für jede Position (in Millisekunden)
-        int vibrationDuration = 500; // 200 ms pro Position, nach Bedarf anpassen
+        int vibrationDuration = 500;
 
         BeltCommandInterface beltController = appController.getBeltController();
         beltController.changeMode(BeltMode.APP);
@@ -487,8 +486,8 @@ public class MainActivity extends BluetoothCheckActivity implements BluetoothChe
                     // Gehe zur nächsten Position
                     index++;
 
-                    // Wiederhole den Vorgang mit einer kurzen Verzögerung (hier 300 ms)
-                    handler.postDelayed(this, 300); // Pause zwischen den Vibrationen
+                    // Pause zwischen den Vibrationen
+                    handler.postDelayed(this, 300);
                 }
             }
         });

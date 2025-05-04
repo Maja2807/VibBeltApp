@@ -1484,23 +1484,14 @@ public class BeltCommunicationController implements BeltCommunicationInterface,
     public void onCharacteristicChanged(@Nullable BluetoothGattCharacteristic characteristic,
                                         @Nullable byte[] value) {
 
-        // Bluetooth Latenz
-        if (characteristic == vibrationCommandChar && lastCommandSentTimeNano != -1) {
-            long responseTimeNano = System.nanoTime();
-            long latencyMicros = (responseTimeNano - lastCommandSentTimeNano) / 1000;
-            Log.d("LATENCY_LOGGER", "Latenz: " + latencyMicros + " µs (" + (latencyMicros / 1000.0) + " ms)");
-
-            // Optional: Reset für nächste Messung
-            lastCommandSentTimeNano = -1;
-        }
-
         if (characteristic == keepAliveChar) {
+//Bluetooth Latenz Messung
 /*
             long responseTimeNano = System.nanoTime();
             long latencyMicros = (responseTimeNano - lastCommandSentTimeNano) / 1000;
             Log.d("LATENCY_LOGGER", "Latenz: " + latencyMicros + " µs (" + (latencyMicros / 1000.0) + " ms)");
 
-            // Optional: Reset für nächste Messung
+            //Reset für nächste Messung
             lastCommandSentTimeNano = -1;
 */
             // Retrieve mode

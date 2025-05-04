@@ -44,7 +44,7 @@ public class InterpretationModeActivity extends AppCompatActivity {
     private long lastReceivedTime;
     private ArrayList<Long> latencyMeasurements = new ArrayList<>();
 
-    // Feste Herzfrequenzwerte
+    // Herzfrequenzwerte
     private static final int[] HEART_RATE_VALUES = { //6x zu niedrig, 6x zu hoch
             94, 62, 75, 77, 60, 87, 91, 79, 38, 69, 93, 85, 79, 82, 99, 64, 74, 81, 82, 64,
             74, 94, 53, 79, 60, 82, 67, 79, 84, 82, 51, 80, 94, 94, 90, 94, 60, 85, 174, 86,
@@ -119,7 +119,6 @@ public class InterpretationModeActivity extends AppCompatActivity {
 
         handler.postDelayed(() -> {
             BeltMode currentMode = beltController.getMode();
-            //Log.d("BeltDebug", "Aktueller Modus: " + currentMode);
             beltController.stopVibration();
         }, 500);
 
@@ -131,7 +130,6 @@ public class InterpretationModeActivity extends AppCompatActivity {
         lastReceivedTime = SystemClock.elapsedRealtime();
         long latency = lastReceivedTime - lastSentTime;
         latencyMeasurements.add(latency);
-        //Log.d("InterpretationTest", "Latenz gemessen: " + latency + " ms");
 
         if (heartRate > 100 || heartRate < 60) {
             lastCriticalTime = lastSentTime;
@@ -156,7 +154,7 @@ public class InterpretationModeActivity extends AppCompatActivity {
     private void recordReaction() {
         if (testRunning) {
             // Überprüfen, ob die Reaktion auf den richtigen Pulswert war
-            int heartRate = HEART_RATE_VALUES[currentIndex - 1]; // Der Wert, auf den wir reagieren sollten
+            int heartRate = HEART_RATE_VALUES[currentIndex - 1]; // Der Wert, auf den reagiert werden soll
             if (heartRate < 60 || heartRate > 100) {
                 long reactionTime = SystemClock.elapsedRealtime() - lastCriticalTime;
                 reactionTimes.add(reactionTime);
@@ -171,33 +169,6 @@ public class InterpretationModeActivity extends AppCompatActivity {
             }
         }
     }
-
-    /*private void recordReaction() {
-        if (testRunning) {
-            // Überprüfen, ob die Reaktion auf den richtigen Pulswert war
-            int heartRate = HEART_RATE_VALUES[currentIndex - 1]; // Der Wert, auf den wir reagieren sollten
-            long currentTime = SystemClock.elapsedRealtime();
-
-            // Überprüfen, ob es sich um einen kritischen Wert handelt (zu niedrig oder zu hoch)
-            if (heartRate < 60 || heartRate > 100) {
-                // Überprüfen, ob die Reaktion innerhalb des Zeitlimits (3 Sekunden) erfolgt ist
-                if (currentTime - lastCriticalTime <= 3000) { // 3000 ms = 3 Sekunden
-                    long reactionTime = currentTime - lastCriticalTime;
-                    reactionTimes.add(reactionTime);
-                    Log.d("Interpretationstest", "Korrekte Reaktion erfasst: " + reactionTime + " ms");
-                    writeToLogFile("Korrekte Reaktion erfasst: " + reactionTime + " ms\n");
-                } else {
-                    // Reaktion zu spät (mehr als 3 Sekunden nach dem kritischen Wert)
-                    Log.d("Interpretationstest", "Reaktion zu spät (mehr als 3 Sekunden nach kritischem Wert).");
-                    writeToLogFile("Reaktion zu spät (mehr als 3 Sekunden nach kritischem Wert).\n");
-                }
-            } else {
-                // Falsche Reaktion, keine Reaktionszeit messen
-                Log.d("Interpretationstest", "Falsche Reaktion: Keine Reaktionszeit gemessen.");
-                writeToLogFile("Falsche Reaktion");
-            }
-        }
-    }*/
 
     private void endTest() {
         testRunning = false;
@@ -214,6 +185,7 @@ public class InterpretationModeActivity extends AppCompatActivity {
         Log.d("InterpretationTest", "Durchschnittliche Reaktionszeit: " + avgReactionTime + " ms");
         writeToLogFile("Test beendet. Durchschnittliche Reaktionszeit: " + avgReactionTime + " ms\n");
 
+        // Durchschnittliche Latenz berechnen
         long latencySum = 0;
         for (long time : latencyMeasurements) {
             latencySum += time;
